@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Administrar Proveedores</title>
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Enlace al archivo CSS -->
+    <link rel="stylesheet" href="../assets/css/styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- Cabecera con Botones de Navegación -->
+    <div class="header">
+        <!-- Botón de Empresas -->
+        <button class="nav-btn" onclick="location.href='../empresas/empresas.html'">Empresas</button>
+        <!-- Botón de Proveedores -->
+        <button class="nav-btn" onclick="location.href='proveedores.html'">Proveedores</button>
+        <!-- Botón de Facturas -->
+        <button class="nav-btn" onclick="location.href='../index.html'">Facturas</button>
+    </div>
+
+    <div class="container">
+        <h1>Administrar Proveedores</h1>
+
+        <div class="table-controls">
+            <button class="add-btn" onclick="abrirModalProveedor()">Agregar Proveedor</button>
+        </div>
+
+        <table id="proveedoresTable">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Días de Crédito</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Proveedores se cargarán aquí dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal para Agregar/Editar Proveedor -->
+    <div id="proveedorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalProveedor()">&times;</span>
+            <h2 id="modalTitleProveedor">Agregar Proveedor</h2>
+            <form id="proveedorForm">
+                <label for="nombreProveedor">Nombre del Proveedor:</label>
+                <input type="text" id="nombreProveedor" required>
+                <label for="diasCredito">Días de Crédito:</label>
+                <input type="number" id="diasCredito" min="0" required>
+                <button type="submit">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Enlace a db.js (ruta relativa) -->
+    <script src="../db.js"></script>
+    <!-- Enlace al archivo JS -->
+    <script src="proveedores.js"></script>
+</body>
+</html>

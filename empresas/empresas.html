@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Administrar Empresas y Sucursales</title>
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Enlace al archivo CSS -->
+    <link rel="stylesheet" href="../assets/css/styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- Cabecera con Botones de Navegación -->
+    <div class="header">
+        <!-- Botón de Empresas -->
+        <button class="nav-btn" onclick="location.href='empresas.html'">Empresas</button>
+        <!-- Botón de Proveedores -->
+        <button class="nav-btn" onclick="location.href='../proveedores/proveedores.html'">Proveedores</button>
+        <!-- Botón de Facturas -->
+        <button class="nav-btn" onclick="location.href='../index.html'">Facturas</button>
+    </div>
+
+    <div class="container">
+        <h1>Administrar Empresas y Sucursales</h1>
+
+        <div class="table-controls">
+            <button class="add-btn" onclick="abrirModalEmpresa()">Agregar Empresa</button>
+        </div>
+
+        <table id="empresasTable">
+            <thead>
+                <tr>
+                    <th>Nombre de la Empresa</th>
+                    <th>Sucursales</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Empresas y sucursales se cargarán aquí dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal para Agregar/Editar Empresa -->
+    <div id="empresaModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalEmpresa()">&times;</span>
+            <h2 id="modalTitleEmpresa">Agregar Empresa</h2>
+            <form id="empresaForm">
+                <label for="nombreEmpresa">Nombre de la Empresa:</label>
+                <input type="text" id="nombreEmpresa" required>
+                <button type="submit">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar Sucursal -->
+    <div id="sucursalModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalSucursal()">&times;</span>
+            <h2 id="modalTitleSucursal">Agregar Sucursal</h2>
+            <form id="sucursalForm">
+                <label for="nombreSucursal">Nombre de la Sucursal:</label>
+                <input type="text" id="nombreSucursal" required>
+                <button type="submit">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Enlace a db.js (ruta relativa) -->
+    <script src="../db.js"></script>
+    <!-- Enlace al archivo JS -->
+    <script src="empresas.js"></script>
+</body>
+</html>

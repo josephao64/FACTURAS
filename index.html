@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Facturación</title>
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Enlace al archivo CSS -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- Cabecera con Botones de Navegación -->
+    <div class="header">
+        <!-- Botón de Empresas -->
+        <button class="nav-btn" onclick="location.href='empresas/empresas.html'">Empresas</button>
+        <!-- Botón de Proveedores -->
+        <button class="nav-btn" onclick="location.href='proveedores/proveedores.html'">Proveedores</button>
+        <!-- Botón de Facturas -->
+        <button class="nav-btn" onclick="location.href='index.html'">Facturas</button>
+    </div>
+
+    <div class="container">
+        <h1>Sistema de Facturación</h1>
+
+        <!-- Sección para seleccionar Año y Mes -->
+        <div class="date-selection">
+            <label for="yearSelect">Año:</label>
+            <select id="yearSelect">
+                <!-- Opciones cargadas dinámicamente -->
+            </select>
+
+            <label for="monthSelect">Mes:</label>
+            <select id="monthSelect">
+                <option value="0">Todos</option>
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+            </select>
+
+            <button onclick="cargarFacturasPorFecha()">Cargar Facturas</button>
+        </div>
+
+        <!-- Nueva Sección de Filtros -->
+        <div class="filter-section">
+            <h2>Filtros de Facturas</h2>
+            <div class="filter-options">
+                <label><input type="radio" name="filterOption" value="todas" checked> Todas las Facturas</label>
+                <label><input type="radio" name="filterOption" value="pagadas"> Facturas Pagadas</label>
+                <label><input type="radio" name="filterOption" value="porPagar"> Facturas por Pagar</label>
+                <label><input type="radio" name="filterOption" value="vencidas"> Facturas Vencidas</label>
+                <label><input type="radio" name="filterOption" value="pagoPendiente"> Facturas con Pago Pendiente</label>
+                <label><input type="radio" name="filterOption" value="prontoVencer"> Facturas Pronto a Vencer (8 días)</label>
+                <label><input type="radio" name="filterOption" value="porPagarHoy"> Facturas por Pagar Hoy</label>
+            </div>
+        </div>
+
+        <div class="table-controls">
+            <div class="filters">
+                <!-- Buscador -->
+                <input type="text" id="searchInput" placeholder="Buscar facturas...">
+                <!-- Filtros -->
+                <select id="filterEmpresa">
+                    <option value="">Todas las Empresas</option>
+                    <!-- Opciones cargadas dinámicamente -->
+                </select>
+                <select id="filterProveedor">
+                    <option value="">Todos los Proveedores</option>
+                    <!-- Opciones cargadas dinámicamente -->
+                </select>
+                <select id="filterSucursal">
+                    <option value="">Todas las Sucursales</option>
+                    <!-- Opciones cargadas dinámicamente -->
+                </select>
+                <select id="filterEstado">
+                    <option value="">Todos los Estados</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Pagado Parcialmente">Pagado Parcialmente</option>
+                    <option value="Pagado Completamente">Pagado Completamente</option>
+                </select>
+                <!-- Filtros por Fecha -->
+                <label for="filterFechaInicio">Fecha Inicio:</label>
+                <input type="date" id="filterFechaInicio">
+                <label for="filterFechaFin">Fecha Fin:</label>
+                <input type="date" id="filterFechaFin">
+
+                <button id="resetFilters" class="resetFiltersBtn" onclick="resetearFiltros()">Resetear Filtros</button>
+            </div>
+            <div class="actions-buttons">
+                <button class="add-factura-btn" onclick="abrirModalFactura()">Agregar Factura</button>
+                <button class="registrar-pago-btn" onclick="abrirModalPago()">Registrar Pago</button>
+                <button class="mostrar-pagos-btn" onclick="mostrarPagos()">Mostrar Pagos</button>
+            </div>
+        </div>
+
+        <table id="facturasTable">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll" onclick="seleccionarTodos(this)"></th>
+                    <th>Empresa</th>
+                    <th>Proveedor</th>
+                    <th>Sucursal</th>
+                    <th>Fecha Factura</th>
+                    <th>Número Factura</th>
+                    <th>Monto</th>
+                    <th>Fecha Vencimiento</th>
+                    <th>Estado</th>
+                    <th>ID Boleta</th>
+                    <th>Monto Pago</th>
+                    <th>Fecha Pago</th>
+                    <th>Monto Pagado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Las facturas se cargarán aquí dinámicamente -->
+                <!-- Ejemplo de una fila de factura con casilla de verificación -->
+                <!--
+                <tr data-id="factura1">
+                    <td><input type="checkbox" class="select-factura" value="factura1"></td>
+                    <td>Empresa A</td>
+                    <td>Proveedor X</td>
+                    <td>Sucursal 1</td>
+                    <td>2024-01-15</td>
+                    <td>FAC-001</td>
+                    <td>Q1,000.00</td>
+                    <td>2024-02-15</td>
+                    <td>Pendiente</td>
+                    <td>IDB-123</td>
+                    <td>Q500.00</td>
+                    <td>2024-01-20</td>
+                    <td>Q500.00</td>
+                </tr>
+                -->
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5">Totales:</td>
+                    <td id="totalFacturas">Q0.00</td>
+                    <td colspan="5"></td>
+                    <td id="totalPagado">Q0.00</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Modal para Agregar/Editar Factura -->
+    <div id="facturaModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalFactura()">&times;</span>
+            <h2 id="modalTitleFactura">Agregar Factura</h2>
+            <form id="facturaForm">
+                <fieldset>
+                    <legend>Información de la Factura</legend>
+
+                    <label for="empresa">Empresa:</label>
+                    <select id="empresa" required>
+                        <option value="">Selecciona una empresa</option>
+                        <!-- Opciones cargadas dinámicamente -->
+                    </select>
+
+                    <label for="sucursal">Sucursal:</label>
+                    <select id="sucursal" required>
+                        <option value="">Selecciona una sucursal</option>
+                        <!-- Opciones cargadas dinámicamente -->
+                    </select>
+
+                    <label for="proveedor">Proveedor:</label>
+                    <select id="proveedor" required>
+                        <option value="">Selecciona un proveedor</option>
+                        <!-- Opciones cargadas dinámicamente -->
+                    </select>
+
+                    <label for="fechaFactura">Fecha de Factura:</label>
+                    <input type="date" id="fechaFactura" required>
+
+                    <label for="numeroFactura">Número de Factura:</label>
+                    <input type="text" id="numeroFactura" required placeholder="Número de Factura">
+
+                    <label for="montoFactura">Monto de Factura:</label>
+                    <input type="number" id="montoFactura" min="0" step="0.01" required>
+
+                    <label for="fechaVencimiento">Fecha de Vencimiento:</label>
+                    <input type="date" id="fechaVencimiento" required readonly>
+
+                    <label for="estado">Estado:</label>
+                    <select id="estado" required>
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Pagado Parcialmente">Pagado Parcialmente</option>
+                        <option value="Pagado Completamente">Pagado Completamente</option>
+                    </select>
+                </fieldset>
+
+                <button type="submit">Guardar Factura</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Registrar Pago -->
+    <div id="pagoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalPago()">&times;</span>
+            <h2>Registrar Pago</h2>
+            <form id="pagoForm">
+                <fieldset>
+                    <legend>Información del Pago</legend>
+
+                    <label for="empresaPago">Empresa:</label>
+                    <input type="text" id="empresaPago" readonly>
+
+                    <label for="facturasSeleccionadas">Facturas a Pagar:</label>
+                    <div id="facturasSeleccionadas" class="facturas-seleccionadas">
+                        <!-- Información de las facturas seleccionadas -->
+                    </div>
+
+                    <label for="idBoleta">ID Boleta:</label>
+                    <input type="text" id="idBoleta" required placeholder="ID de la Boleta">
+
+                    <label for="cantidad">Cantidad a Pagar (Total Boleta):</label>
+                    <input type="number" id="cantidad" min="0" step="0.01" required readonly>
+
+                    <label for="formaPago">Forma de Pago:</label>
+                    <select id="formaPago" required>
+                        <option value="">Selecciona una forma de pago</option>
+                        <option value="Depósito">Depósito</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Transferencia">Transferencia</option>
+                    </select>
+
+                    <label for="banco">Banco:</label>
+                    <input type="text" id="banco" required placeholder="Nombre del Banco">
+
+                    <label for="quienDeposito">Quién Pagó:</label>
+                    <select id="quienDeposito" required>
+                        <option value="">Selecciona una sucursal</option>
+                        <!-- Opciones cargadas dinámicamente -->
+                    </select>
+
+                    <label for="totalBoleta">Total Boleta:</label>
+                    <input type="number" id="totalBoleta" min="0" step="0.01" required readonly>
+                </fieldset>
+
+                <button type="submit">Registrar Pago</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Mostrar Pagos -->
+    <div id="mostrarPagosModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalMostrarPagos()">&times;</span>
+            <h2>Pagos Registrados</h2>
+            <div id="listaPagos">
+                <!-- Lista de pagos se cargará aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Editar Pago -->
+    <div id="editarPagoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalEditarPago()">&times;</span>
+            <h2>Editar Pago</h2>
+            <form id="editarPagoForm">
+                <fieldset>
+                    <legend>Información del Pago</legend>
+
+                    <input type="hidden" id="editarPagoId">
+
+                    <label for="editarIdBoleta">ID Boleta:</label>
+                    <input type="text" id="editarIdBoleta" required>
+
+                    <label for="editarCantidad">Cantidad Total Pagada:</label>
+                    <input type="number" id="editarCantidad" min="0" step="0.01" required readonly>
+
+                    <label for="editarFormaPago">Forma de Pago:</label>
+                    <select id="editarFormaPago" required>
+                        <option value="">Selecciona una forma de pago</option>
+                        <option value="Depósito">Depósito</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Transferencia">Transferencia</option>
+                    </select>
+
+                    <label for="editarBanco">Banco:</label>
+                    <input type="text" id="editarBanco" required>
+
+                    <label for="editarQuienDeposito">Quién Pagó:</label>
+                    <input type="text" id="editarQuienDeposito" required>
+
+                    <label for="editarTotalBoleta">Total Boleta:</label>
+                    <input type="number" id="editarTotalBoleta" min="0" step="0.01" required readonly>
+
+                    <label for="editarFechaPago">Fecha de Pago:</label>
+                    <input type="date" id="editarFechaPago" required>
+                </fieldset>
+
+                <button type="submit">Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Enlace a db.js -->
+    <script src="db.js"></script>
+    <!-- Enlace al archivo JS principal -->
+    <script src="index.js"></script>
+</body>
+</html>
