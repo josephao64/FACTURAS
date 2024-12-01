@@ -101,6 +101,8 @@
                 <button class="add-factura-btn" onclick="abrirModalFactura()">Agregar Factura</button>
                 <button class="registrar-pago-btn" onclick="abrirModalPago()">Registrar Pago</button>
                 <button class="mostrar-pagos-btn" onclick="mostrarPagos()">Mostrar Pagos</button>
+                <!-- Nuevo Botón para Eliminar Facturas -->
+                <button id="eliminarFacturasBtn" class="eliminar-factura-btn">Eliminar Facturas Seleccionadas</button>
             </div>
         </div>
 
@@ -227,7 +229,7 @@
                     <input type="text" id="idBoleta" required placeholder="ID de la Boleta">
 
                     <label for="cantidad">Cantidad a Pagar (Total Boleta):</label>
-                    <input type="number" id="cantidad" min="0" step="0.01" required readonly>
+                    <input type="number" id="cantidad" min="0" step="0.01" required>
 
                     <label for="formaPago">Forma de Pago:</label>
                     <select id="formaPago" required>
@@ -245,9 +247,6 @@
                         <option value="">Selecciona una sucursal</option>
                         <!-- Opciones cargadas dinámicamente -->
                     </select>
-
-                    <label for="totalBoleta">Total Boleta:</label>
-                    <input type="number" id="totalBoleta" min="0" step="0.01" required readonly>
                 </fieldset>
 
                 <button type="submit">Registrar Pago</button>
@@ -296,9 +295,6 @@
 
                     <label for="editarQuienDeposito">Quién Pagó:</label>
                     <input type="text" id="editarQuienDeposito" required>
-
-                    <label for="editarTotalBoleta">Total Boleta:</label>
-                    <input type="number" id="editarTotalBoleta" min="0" step="0.01" required readonly>
 
                     <label for="editarFechaPago">Fecha de Pago:</label>
                     <input type="date" id="editarFechaPago" required>
