@@ -6,110 +6,326 @@
     <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <!-- Enlace al archivo CSS -->
-    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="styles.css">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <style>
+        .header {
+            background-color: #f8f9fa;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header .nav-btn {
+            margin: 0 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .header .nav-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        h1, h3 {
+            text-align: center;
+            color: #333333;
+        }
+
+        .main-content {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        #boletasConSaldo {
+            width: 60%;
+        }
+
+        .filtros {
+            width: 35%;
+            background-color: #f2f2f2;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .filtros .filter-group div {
+            margin-bottom: 10px;
+        }
+
+        .filtros label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .filtros input, .filtros select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        .action-buttons {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #008CBA;
+            color: #ffffff;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            margin: 0 5px;
+        }
+
+        .action-buttons button:hover {
+            background-color: #007bb5;
+        }
+
+        #facturasTable {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #facturasTable th, #facturasTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        #facturasTable th {
+            background-color: #f2f2f2;
+        }
+
+        .selected-row {
+            background-color: #e6f7ff;
+        }
+
+        .vencida {
+            background-color: #ffe6e6;
+        }
+
+        .pagado-parcialmente {
+            background-color: #ffffcc;
+        }
+
+        .pagado-completamente {
+            background-color: #e6ffe6;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            padding-top: 60px;
+            left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto; padding: 20px; border: 1px solid #888;
+            width: 80%; border-radius: 8px; position: relative;
+        }
+
+        .close {
+            color: #aaa;
+            position: absolute; right: 20px; top: 10px;
+            font-size: 28px; font-weight: bold; cursor: pointer;
+        }
+
+        .close:hover, .close:focus {
+            color: black; text-decoration: none;
+        }
+
+        .modal form {
+            display: flex; flex-direction: column;
+        }
+
+        .modal form div {
+            margin-bottom: 15px;
+        }
+
+        .modal form label {
+            margin-bottom: 5px; font-weight: bold;
+        }
+
+        .modal form input[type="text"],
+        .modal form input[type="number"],
+        .modal form input[type="date"],
+        .modal form select {
+            padding: 8px; width: 100%; box-sizing: border-box;
+        }
+
+        .modal form button {
+            padding: 10px 15px; border: none; background-color: #4CAF50;
+            color: #ffffff; cursor: pointer; border-radius: 4px; font-size: 14px;
+            align-self: flex-start;
+        }
+
+        .modal form button:hover {
+            background-color: #45a049;
+        }
+
+        #boletasTable ul, #boletasTable li {
+            list-style-type: none;
+            padding: 0; margin: 0;
+        }
+
+        #boletasTable li {
+            padding: 2px 0;
+        }
+
+        .edit-btn {
+            background-color: #4CAF50; color: #ffffff;
+            padding: 5px 10px; margin-right: 5px; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+
+        .edit-btn:hover {
+            background-color: #45a049;
+        }
+
+        .delete-btn {
+            background-color: #f44336; color: #ffffff;
+            padding: 5px 10px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 12px;
+        }
+
+        .delete-btn:hover {
+            background-color: #da190b;
+        }
+
+        .show-pagos-btn {
+            background-color: #6c757d; color: #ffffff;
+            padding: 5px 10px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 12px; margin-left: 5px;
+        }
+
+        .show-pagos-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .pago-item {
+            margin-bottom: 10px;
+        }
+
+        .aplicar-boleta-btn {
+            background-color: #5cb85c; color: #ffffff;
+            padding: 5px 10px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 12px;
+        }
+
+        .aplicar-boleta-btn:hover {
+            background-color: #4cae4c;
+        }
+    </style>
 </head>
 <body>
-    <!-- Cabecera con Botones de Navegación -->
     <div class="header">
-        <!-- Botón de Empresas -->
-        <button class="nav-btn" onclick="location.href='empresas/empresas.html'">Empresas</button>
-        <!-- Botón de Proveedores -->
-        <button class="nav-btn" onclick="location.href='proveedores/proveedores.html'">Proveedores</button>
-        <!-- Botón de Facturas -->
+        <button class="nav-btn" onclick="location.href='empresas.html'">Empresas</button>
+        <button class="nav-btn" onclick="location.href='proveedores.html'">Proveedores</button>
         <button class="nav-btn" onclick="location.href='index.html'">Facturas</button>
     </div>
 
     <div class="container">
         <h1>Sistema de Facturación</h1>
 
-        <!-- Sección para seleccionar Año y Mes -->
-        <div class="date-selection">
-            <label for="yearSelect">Año:</label>
-            <select id="yearSelect">
-                <!-- Opciones cargadas dinámicamente -->
-            </select>
+        <div class="main-content">
+            <div id="boletasConSaldo">
+                <h3>Boletas con Saldo Disponible</h3>
+                <table id="boletasTable">
+                    <thead>
+                        <tr>
+                            <th>ID Boleta</th>
+                            <th>Cantidad Total</th>
+                            <th>Saldo Disponible</th>
+                            <th>Facturas Aplicadas</th>
+                            <th>Cantidad Aplicada</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Boletas con saldo se cargan dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
 
-            <label for="monthSelect">Mes:</label>
-            <select id="monthSelect">
-                <option value="0">Todos</option>
-                <option value="1">Enero</option>
-                <option value="2">Febrero</option>
-                <option value="3">Marzo</option>
-                <option value="4">Abril</option>
-                <option value="5">Mayo</option>
-                <option value="6">Junio</option>
-                <option value="7">Julio</option>
-                <option value="8">Agosto</option>
-                <option value="9">Septiembre</option>
-                <option value="10">Octubre</option>
-                <option value="11">Noviembre</option>
-                <option value="12">Diciembre</option>
-            </select>
-
-            <button onclick="cargarFacturasPorFecha()">Cargar Facturas</button>
-        </div>
-
-        <!-- Nueva Sección de Filtros -->
-        <div class="filter-section">
-            <h2>Filtros de Facturas</h2>
-            <div class="filter-options">
-                <label><input type="radio" name="filterOption" value="todas" checked> Todas las Facturas</label>
-                <label><input type="radio" name="filterOption" value="pagadas"> Facturas Pagadas</label>
-                <label><input type="radio" name="filterOption" value="porPagar"> Facturas por Pagar</label>
-                <label><input type="radio" name="filterOption" value="vencidas"> Facturas Vencidas</label>
-                <label><input type="radio" name="filterOption" value="pagoPendiente"> Facturas con Pago Pendiente</label>
-                <label><input type="radio" name="filterOption" value="prontoVencer"> Facturas Pronto a Vencer (8 días)</label>
-                <label><input type="radio" name="filterOption" value="porPagarHoy"> Facturas por Pagar Hoy</label>
+            <div class="filtros">
+                <div class="filter-group">
+                    <div>
+                        <label for="searchInput">Buscar:</label>
+                        <input type="text" id="searchInput" placeholder="Buscar...">
+                    </div>
+                    <div>
+                        <label for="filterEmpresa">Empresa:</label>
+                        <select id="filterEmpresa"></select>
+                    </div>
+                    <div>
+                        <label for="filterProveedor">Proveedor:</label>
+                        <select id="filterProveedor"></select>
+                    </div>
+                    <div>
+                        <label for="filterSucursal">Sucursal:</label>
+                        <select id="filterSucursal"></select>
+                    </div>
+                    <div>
+                        <label for="filterEstado">Estado:</label>
+                        <select id="filterEstado">
+                            <option value="">Todos</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Pagado Parcialmente">Pagado Parcialmente</option>
+                            <option value="Pagado Completamente">Pagado Completamente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filterFechaInicio">Fecha Inicio:</label>
+                        <input type="date" id="filterFechaInicio">
+                    </div>
+                    <div>
+                        <label for="filterFechaFin">Fecha Fin:</label>
+                        <input type="date" id="filterFechaFin">
+                    </div>
+                    <div>
+                        <label for="yearSelect">Año:</label>
+                        <select id="yearSelect"></select>
+                    </div>
+                </div>
+                <button onclick="filtrarFacturas()">Aplicar Filtros</button>
+                <button onclick="resetearFiltros()">Resetear Filtros</button>
             </div>
         </div>
 
-        <div class="table-controls">
-            <div class="filters">
-                <!-- Buscador -->
-                <input type="text" id="searchInput" placeholder="Buscar facturas...">
-                <!-- Filtros -->
-                <select id="filterEmpresa">
-                    <option value="">Todas las Empresas</option>
-                    <!-- Opciones cargadas dinámicamente -->
-                </select>
-                <select id="filterProveedor">
-                    <option value="">Todos los Proveedores</option>
-                    <!-- Opciones cargadas dinámicamente -->
-                </select>
-                <select id="filterSucursal">
-                    <option value="">Todas las Sucursales</option>
-                    <!-- Opciones cargadas dinámicamente -->
-                </select>
-                <select id="filterEstado">
-                    <option value="">Todos los Estados</option>
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="Pagado Parcialmente">Pagado Parcialmente</option>
-                    <option value="Pagado Completamente">Pagado Completamente</option>
-                </select>
-                <!-- Filtros por Fecha -->
-                <label for="filterFechaInicio">Fecha Inicio:</label>
-                <input type="date" id="filterFechaInicio">
-                <label for="filterFechaFin">Fecha Fin:</label>
-                <input type="date" id="filterFechaFin">
-
-                <button id="resetFilters" class="resetFiltersBtn" onclick="resetearFiltros()">Resetear Filtros</button>
-            </div>
-            <div class="actions-buttons">
-                <button class="add-factura-btn" onclick="abrirModalFactura()">Agregar Factura</button>
-                <button class="registrar-pago-btn" onclick="abrirModalPago()">Registrar Pago</button>
-                <button class="mostrar-pagos-btn" onclick="mostrarPagos()">Mostrar Pagos</button>
-                <!-- Nuevo Botón para Eliminar Facturas -->
-                <button id="eliminarFacturasBtn" class="eliminar-factura-btn">Eliminar Facturas Seleccionadas</button>
-            </div>
+        <div class="action-buttons">
+            <button onclick="abrirModalFactura()">Agregar Factura</button>
+            <button onclick="abrirModalPago()">Registrar Pago</button>
+            <button onclick="mostrarPagos()">Mostrar Pagos</button>
         </div>
 
         <table id="facturasTable">
             <thead>
                 <tr>
-                    <th><input type="checkbox" id="selectAll" onclick="seleccionarTodos(this)"></th>
+                    <th><input type="checkbox" onclick="seleccionarTodos(this)"></th>
                     <th>Empresa</th>
                     <th>Proveedor</th>
                     <th>Sucursal</th>
@@ -119,197 +335,201 @@
                     <th>Fecha Vencimiento</th>
                     <th>Estado</th>
                     <th>ID Boleta</th>
-                    <th>Monto Pago</th>
+                    <th>Monto Aplicado</th>
                     <th>Fecha Pago</th>
-                    <th>Monto Pagado</th>
+                    <th>Total Pagado</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                <!-- Las facturas se cargarán aquí dinámicamente -->
-                <!-- Ejemplo de una fila de factura con casilla de verificación -->
-                <!--
-                <tr data-id="factura1">
-                    <td><input type="checkbox" class="select-factura" value="factura1"></td>
-                    <td>Empresa A</td>
-                    <td>Proveedor X</td>
-                    <td>Sucursal 1</td>
-                    <td>2024-01-15</td>
-                    <td>FAC-001</td>
-                    <td>Q1,000.00</td>
-                    <td>2024-02-15</td>
-                    <td>Pendiente</td>
-                    <td>IDB-123</td>
-                    <td>Q500.00</td>
-                    <td>2024-01-20</td>
-                    <td>Q500.00</td>
-                </tr>
-                -->
+                <!-- Facturas se cargan dinámicamente -->
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="5">Totales:</td>
+                    <td colspan="13">Total Facturas:</td>
                     <td id="totalFacturas">Q0.00</td>
-                    <td colspan="5"></td>
+                </tr>
+                <tr>
+                    <td colspan="13">Total Pagado:</td>
                     <td id="totalPagado">Q0.00</td>
                 </tr>
             </tfoot>
         </table>
     </div>
 
-    <!-- Modal para Agregar/Editar Factura -->
+    <!-- Modales -->
+
+    <!-- Modal Factura (Agregar/Editar) -->
     <div id="facturaModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalFactura()">&times;</span>
             <h2 id="modalTitleFactura">Agregar Factura</h2>
             <form id="facturaForm">
-                <fieldset>
-                    <legend>Información de la Factura</legend>
-
+                <div>
                     <label for="empresa">Empresa:</label>
-                    <select id="empresa" required>
-                        <option value="">Selecciona una empresa</option>
-                        <!-- Opciones cargadas dinámicamente -->
-                    </select>
-
+                    <select id="empresa" required></select>
+                </div>
+                <div>
                     <label for="sucursal">Sucursal:</label>
-                    <select id="sucursal" required>
-                        <option value="">Selecciona una sucursal</option>
-                        <!-- Opciones cargadas dinámicamente -->
-                    </select>
-
+                    <select id="sucursal" required></select>
+                </div>
+                <div>
                     <label for="proveedor">Proveedor:</label>
-                    <select id="proveedor" required>
-                        <option value="">Selecciona un proveedor</option>
-                        <!-- Opciones cargadas dinámicamente -->
-                    </select>
-
+                    <select id="proveedor" required></select>
+                </div>
+                <div>
                     <label for="fechaFactura">Fecha de Factura:</label>
-                    <input type="date" id="fechaFactura" required>
-
+                    <input type="date" id="fechaFactura" required onchange="calcularFechaVencimiento()">
+                </div>
+                <div>
                     <label for="numeroFactura">Número de Factura:</label>
-                    <input type="text" id="numeroFactura" required placeholder="Número de Factura">
-
+                    <input type="text" id="numeroFactura" required>
+                </div>
+                <div>
                     <label for="montoFactura">Monto de Factura:</label>
-                    <input type="number" id="montoFactura" min="0" step="0.01" required>
-
+                    <input type="number" id="montoFactura" step="0.01" min="0" required>
+                </div>
+                <div>
                     <label for="fechaVencimiento">Fecha de Vencimiento:</label>
-                    <input type="date" id="fechaVencimiento" required readonly>
-
+                    <input type="date" id="fechaVencimiento" required>
+                </div>
+                <div>
                     <label for="estado">Estado:</label>
                     <select id="estado" required>
                         <option value="Pendiente">Pendiente</option>
                         <option value="Pagado Parcialmente">Pagado Parcialmente</option>
                         <option value="Pagado Completamente">Pagado Completamente</option>
                     </select>
-                </fieldset>
-
+                </div>
                 <button type="submit">Guardar Factura</button>
             </form>
         </div>
     </div>
 
-    <!-- Modal para Registrar Pago -->
+    <!-- Modal Pago -->
     <div id="pagoModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalPago()">&times;</span>
             <h2>Registrar Pago</h2>
             <form id="pagoForm">
-                <fieldset>
-                    <legend>Información del Pago</legend>
-
-                    <label for="empresaPago">Empresa:</label>
-                    <input type="text" id="empresaPago" readonly>
-
-                    <label for="facturasSeleccionadas">Facturas a Pagar:</label>
-                    <div id="facturasSeleccionadas" class="facturas-seleccionadas">
-                        <!-- Información de las facturas seleccionadas -->
-                    </div>
-
+                <div>
                     <label for="idBoleta">ID Boleta:</label>
-                    <input type="text" id="idBoleta" required placeholder="ID de la Boleta">
-
-                    <label for="cantidad">Cantidad a Pagar (Total Boleta):</label>
-                    <input type="number" id="cantidad" min="0" step="0.01" required>
-
+                    <input type="text" id="idBoleta" required>
+                </div>
+                <div>
+                    <label for="facturasSeleccionadas">Facturas Seleccionadas:</label>
+                    <div id="facturasSeleccionadas"></div>
+                </div>
+                <div>
+                    <label for="cantidad">Cantidad:</label>
+                    <input type="number" id="cantidad" step="0.01" min="0" required>
+                </div>
+                <div>
                     <label for="formaPago">Forma de Pago:</label>
                     <select id="formaPago" required>
                         <option value="">Selecciona una forma de pago</option>
-                        <option value="Depósito">Depósito</option>
                         <option value="Efectivo">Efectivo</option>
                         <option value="Transferencia">Transferencia</option>
+                        <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
                     </select>
-
+                </div>
+                <div>
                     <label for="banco">Banco:</label>
-                    <input type="text" id="banco" required placeholder="Nombre del Banco">
-
-                    <label for="quienDeposito">Quién Pagó:</label>
+                    <input type="text" id="banco" required>
+                </div>
+                <div>
+                    <label for="quienDeposito">Quién Deposito:</label>
                     <select id="quienDeposito" required>
                         <option value="">Selecciona una sucursal</option>
-                        <!-- Opciones cargadas dinámicamente -->
                     </select>
-                </fieldset>
-
+                </div>
+                <div>
+                    <label for="empresaPago">Empresa:</label>
+                    <input type="text" id="empresaPago" readonly>
+                </div>
+                <div id="saldoDisponible">
+                    <p><strong>Saldo Disponible:</strong> Q0.00</p>
+                </div>
                 <button type="submit">Registrar Pago</button>
             </form>
         </div>
     </div>
 
-    <!-- Modal para Mostrar Pagos -->
-    <div id="mostrarPagosModal" class="modal">
+    <!-- Modal Aplicar Boleta -->
+    <div id="aplicarBoletaModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="cerrarModalMostrarPagos()">&times;</span>
-            <h2>Pagos Registrados</h2>
-            <div id="listaPagos">
-                <!-- Lista de pagos se cargará aquí -->
-            </div>
+            <span class="close" onclick="cerrarModalAplicarBoleta()">&times;</span>
+            <h2>Aplicar Boleta</h2>
+            <div id="boletaSeleccionadaInfo"></div>
+            <form id="aplicarBoletaForm">
+                <div>
+                    <label for="facturasPendientes">Selecciona Facturas Pendientes:</label>
+                    <div id="facturasPendientes"></div>
+                </div>
+                <div>
+                    <label for="montoAplicacion">Monto a Aplicar:</label>
+                    <input type="number" id="montoAplicacion" step="0.01" min="0" required>
+                </div>
+                <button type="submit">Aplicar Boleta</button>
+            </form>
         </div>
     </div>
 
-    <!-- Modal para Editar Pago -->
+    <!-- Modal Mostrar Pagos -->
+    <div id="mostrarPagosModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalMostrarPagos()">&times;</span>
+            <h2>Lista de Pagos</h2>
+            <div id="listaPagos"></div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Pago -->
     <div id="editarPagoModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalEditarPago()">&times;</span>
             <h2>Editar Pago</h2>
             <form id="editarPagoForm">
-                <fieldset>
-                    <legend>Información del Pago</legend>
-
-                    <input type="hidden" id="editarPagoId">
-
+                <input type="hidden" id="editarPagoId">
+                <div>
                     <label for="editarIdBoleta">ID Boleta:</label>
-                    <input type="text" id="editarIdBoleta" required>
-
-                    <label for="editarCantidad">Cantidad Total Pagada:</label>
-                    <input type="number" id="editarCantidad" min="0" step="0.01" required readonly>
-
+                    <input type="text" id="editarIdBoleta" readonly>
+                </div>
+                <div>
+                    <label for="editarCantidad">Cantidad:</label>
+                    <input type="number" id="editarCantidad" step="0.01" min="0" required>
+                </div>
+                <div>
                     <label for="editarFormaPago">Forma de Pago:</label>
                     <select id="editarFormaPago" required>
                         <option value="">Selecciona una forma de pago</option>
-                        <option value="Depósito">Depósito</option>
                         <option value="Efectivo">Efectivo</option>
                         <option value="Transferencia">Transferencia</option>
+                        <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
                     </select>
-
+                </div>
+                <div>
                     <label for="editarBanco">Banco:</label>
                     <input type="text" id="editarBanco" required>
-
-                    <label for="editarQuienDeposito">Quién Pagó:</label>
+                </div>
+                <div>
+                    <label for="editarQuienDeposito">Quién Deposito:</label>
                     <input type="text" id="editarQuienDeposito" required>
-
+                </div>
+                <div>
                     <label for="editarFechaPago">Fecha de Pago:</label>
                     <input type="date" id="editarFechaPago" required>
-                </fieldset>
-
-                <button type="submit">Guardar Cambios</button>
+                </div>
+                <button type="submit">Actualizar Pago</button>
             </form>
         </div>
     </div>
 
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Enlace a db.js -->
+    <!-- Cargar primero db.js (inicializa Firestore) -->
     <script src="db.js"></script>
-    <!-- Enlace al archivo JS principal -->
+    <!-- Luego index.js (lógica principal) -->
     <script src="index.js"></script>
 </body>
 </html>

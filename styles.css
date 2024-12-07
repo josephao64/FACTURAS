@@ -1,0 +1,260 @@
+/* styles.css */
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #eef2f5;
+}
+
+.header {
+    background-color: #4CAF50;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.nav-btn {
+    background-color: #ffffff;
+    border: none;
+    color: #4CAF50;
+    padding: 10px 20px;
+    margin: 0 10px;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 4px;
+}
+
+.nav-btn:hover {
+    background-color: #f1f1f1;
+}
+
+.container {
+    padding: 20px;
+}
+
+.main-content {
+    display: flex;
+    gap: 20px;
+}
+
+/* Estilos para la sección de Boletas */
+#boletasConSaldo {
+    flex: 1;
+    background-color: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    overflow-x: auto;
+}
+
+#boletasConSaldo h3 {
+    margin-top: 0;
+}
+
+#boletasTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#boletasTable th, #boletasTable td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+#boletasTable th {
+    background-color: #f2f2f2;
+}
+
+/* Estilos para la sección de Filtros */
+.filtros {
+    flex: 0.5;
+    background-color: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.filter-group div {
+    margin-bottom: 10px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.filter-group input[type="text"],
+.filter-group select,
+.filter-group input[type="date"] {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.filtros button {
+    padding: 10px 15px;
+    margin-right: 10px;
+    border: none;
+    background-color: #4CAF50;
+    color: #ffffff;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.filtros button:hover {
+    background-color: #45a049;
+}
+
+/* Estilos para los botones de acción */
+.action-buttons {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+}
+
+.action-buttons button {
+    padding: 10px 15px;
+    border: none;
+    background-color: #008CBA;
+    color: #ffffff;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.action-buttons button:hover {
+    background-color: #007bb5;
+}
+
+/* Estilos para la tabla de Facturas */
+#facturasTable {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+#facturasTable th, #facturasTable td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+#facturasTable th {
+    background-color: #f2f2f2;
+}
+
+/* Estilos para filas seleccionadas */
+.selected-row {
+    background-color: #e6f7ff;
+}
+
+/* Estilos para diferentes estados de facturas */
+.vencida {
+    background-color: #ffe6e6;
+}
+
+.pagado-parcialmente {
+    background-color: #ffffcc;
+}
+
+.pagado-completamente {
+    background-color: #e6ffe6;
+}
+
+/* Estilos para los Modales */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 60px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    border-radius: 8px;
+    position: relative;
+}
+
+.close {
+    color: #aaa;
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+}
+
+/* Estilos para formularios dentro de los modales */
+.modal form {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal form div {
+    margin-bottom: 15px;
+}
+
+.modal form label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.modal form input[type="text"],
+.modal form input[type="number"],
+.modal form input[type="date"],
+.modal form select {
+    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.modal form button {
+    padding: 10px 15px;
+    border: none;
+    background-color: #4CAF50;
+    color: #ffffff;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    align-self: flex-start;
+}
+
+.modal form button:hover {
+    background-color: #45a049;
+}
+
+/* Estilos para listas dentro de las tablas */
+#boletasTable ul,
+#boletasTable li {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#boletasTable li {
+    padding: 2px 0;
+}

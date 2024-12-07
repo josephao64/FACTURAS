@@ -1,927 +1,1257 @@
-// index.js
-
-// Asegúrate de que db.js está correctamente configurado con tu proyecto de Firebase
-// y que este archivo se carga antes de este script en tu HTML.
-// const db = firebase.firestore();
-
+// =========================
 // Variables Globales
-let facturas = [];    // Lista de facturas
-let pagos = [];       // Lista de pagos
-let empresas = [];    // Lista de empresas
-let proveedores = []; // Lista de proveedores
+// =========================
+let facturas = [];
+let pagos = [];
+let empresas = [];
+let proveedores = [];
 
-// Formatter para Quetzales
+// Formateador de moneda (Quetzales)
 const quetzalFormatter = new Intl.NumberFormat('es-GT', {
-    style: 'currency',
-    currency: 'GTQ',
-    minimumFractionDigits: 2
+  style: 'currency',
+  currency: 'GTQ',
+  minimumFractionDigits: 2
 });
 
-// Función para cargar datos iniciales
-function cargarDatosIniciales() {
-    cargarEmpresas();
-    cargarProveedores();
-    cargarFacturas();
-    cargarPagos();
-    poblarSelectEmpresaFilter();
-    poblarSelectProveedorFilter();
-    poblarSelectSucursalFilter();
-    cargarAnios();
-    agregarEventosGlobales();
-}
+// =========================
+// Funciones de Utilidad
+// =========================
 
-// Función para cargar empresas desde Firestore
-function cargarEmpresas() {
-    db.collection("empresas").get()
-        .then(querySnapshot => {
-            empresas = []; // Reiniciar empresas
-            querySnapshot.forEach(doc => {
-                empresas.push({ id: doc.id, ...doc.data() });
-            });
-            poblarSelectEmpresas();
-            poblarSelectEmpresaFilter();
-            poblarSelectSucursalFilter(); // Actualizar sucursales después de cargar empresas
-        })
-        .catch(error => {
-            console.error("Error al cargar empresas: ", error);
-        });
-}
-
-// Función para cargar proveedores desde Firestore
-function cargarProveedores() {
-    db.collection("proveedores").get()
-        .then(querySnapshot => {
-            proveedores = []; // Reiniciar proveedores
-            querySnapshot.forEach(doc => {
-                proveedores.push({ id: doc.id, ...doc.data() });
-            });
-            poblarSelectProveedores();
-            poblarSelectProveedorFilter();
-        })
-        .catch(error => {
-            console.error("Error al cargar proveedores: ", error);
-        });
-}
-
-// Función para cargar facturas desde Firestore con listener en tiempo real
-function cargarFacturas() {
-    db.collection("facturas").onSnapshot(snapshot => {
-        facturas = [];
-        snapshot.forEach(doc => {
-            facturas.push({ id: doc.id, ...doc.data() });
-        });
-        filtrarFacturas(); // Aplicar filtros después de cargar
-    }, error => {
-        console.error("Error al cargar facturas: ", error);
-    });
-}
-
-// Función para cargar pagos desde Firestore con listener en tiempo real
-function cargarPagos() {
-    db.collection("pagos").onSnapshot(snapshot => {
-        pagos = [];
-        snapshot.forEach(doc => {
-            pagos.push({ id: doc.id, ...doc.data() });
-        });
-        // No se requiere refrescar la tabla de facturas aquí
-    }, error => {
-        console.error("Error al cargar pagos: ", error);
-    });
-}
-
-// Función para poblar el select de empresas en los filtros
-function poblarSelectEmpresaFilter() {
-    const empresaFilter = document.getElementById('filterEmpresa');
-    if (empresaFilter) {
-        empresaFilter.innerHTML = '<option value="">Todas las Empresas</option>';
-        empresas.forEach(empresa => {
-            const option = document.createElement('option');
-            option.value = empresa.id;
-            option.textContent = empresa.nombre;
-            empresaFilter.appendChild(option);
-        });
-    }
-}
-
-// Función para poblar el select de proveedores en los filtros
-function poblarSelectProveedorFilter() {
-    const proveedorFilter = document.getElementById('filterProveedor');
-    if (proveedorFilter) {
-        proveedorFilter.innerHTML = '<option value="">Todos los Proveedores</option>';
-        proveedores.forEach(proveedor => {
-            const option = document.createElement('option');
-            option.value = proveedor.id;
-            option.textContent = proveedor.nombre;
-            proveedorFilter.appendChild(option);
-        });
-    }
-}
-
-// Función para poblar el select de sucursales en los filtros
-function poblarSelectSucursalFilter() {
-    const sucursalFilter = document.getElementById('filterSucursal');
-    if (sucursalFilter) {
-        sucursalFilter.innerHTML = '<option value="">Todas las Sucursales</option>';
-        // Obtener todas las sucursales únicas de las empresas
-        const sucursalesUnicas = [...new Set(empresas.flatMap(e => e.sucursales))];
-        sucursalesUnicas.forEach(sucursal => {
-            const option = document.createElement('option');
-            option.value = sucursal;
-            option.textContent = sucursal;
-            sucursalFilter.appendChild(option);
-        });
-    }
-}
-
-// Función para poblar el select de empresas en el modal de factura
-function poblarSelectEmpresas() {
-    const empresaSelect = document.getElementById('empresa');
-    if (empresaSelect) {
-        empresaSelect.innerHTML = '<option value="">Selecciona una empresa</option>';
-        empresas.forEach(empresa => {
-            const option = document.createElement('option');
-            option.value = empresa.id;
-            option.textContent = empresa.nombre;
-            empresaSelect.appendChild(option);
-        });
-    }
-}
-
-// Función para poblar el select de proveedores en el modal de factura
-function poblarSelectProveedores() {
-    const proveedorSelect = document.getElementById('proveedor');
-    if (proveedorSelect) {
-        proveedorSelect.innerHTML = '<option value="">Selecciona un proveedor</option>';
-        proveedores.forEach(proveedor => {
-            const option = document.createElement('option');
-            option.value = proveedor.id;
-            option.textContent = proveedor.nombre;
-            proveedorSelect.appendChild(option);
-        });
-    }
-}
-
-// Función para poblar el select de sucursales en el modal de factura basado en la empresa seleccionada
-function poblarSelectSucursalModal() {
-    const empresaSelect = document.getElementById('empresa');
-    const sucursalSelect = document.getElementById('sucursal');
-    if (empresaSelect && sucursalSelect) {
-        sucursalSelect.innerHTML = '<option value="">Selecciona una sucursal</option>';
-        const empresaId = empresaSelect.value;
-        if (empresaId) {
-            const empresa = empresas.find(e => e.id === empresaId);
-            if (empresa && empresa.sucursales) {
-                empresa.sucursales.forEach(sucursal => {
-                    const option = document.createElement('option');
-                    option.value = sucursal;
-                    option.textContent = sucursal;
-                    sucursalSelect.appendChild(option);
-                });
-            }
-        }
-    }
-}
-
-// Función para cargar años en el select de año
-function cargarAnios() {
-    const yearSelect = document.getElementById('yearSelect');
-    const currentYear = new Date().getFullYear();
-    for (let y = currentYear; y >= 2000; y--) {
-        const option = document.createElement('option');
-        option.value = y;
-        option.textContent = y;
-        yearSelect.appendChild(option);
-    }
-}
-
-// -----------------------------
-// Funciones para Mostrar Facturas
-// -----------------------------
-
-// Función para mostrar facturas en la tabla
-function mostrarFacturas(facturasFiltradas) {
-    const tbody = document.querySelector('#facturasTable tbody');
-    let totalFacturas = 0;
-    let totalPagado = 0;
-
-    if (tbody) {
-        tbody.innerHTML = '';
-        facturasFiltradas.forEach(factura => {
-            const empresa = empresas.find(e => e.id === factura.empresaId);
-            const proveedor = proveedores.find(p => p.id === factura.proveedorId);
-            const montoPagado = calcularMontoPagadoSync(factura.id);
-
-            totalFacturas += factura.montoFactura;
-            totalPagado += montoPagado;
-
-            // Obtener datos del último pago asociado a la factura
-            const ultimoPago = obtenerUltimoPagoFactura(factura.id);
-            const montoPagoAplicado = ultimoPago ? obtenerMontoPagoAplicado(factura.id, ultimoPago) : 0;
-
-            const tr = document.createElement('tr');
-            tr.setAttribute('data-id', factura.id);
-            tr.innerHTML = `
-                <td><input type="checkbox" class="select-factura" value="${factura.id}"></td>
-                <td>${empresa ? empresa.nombre : 'Desconocida'}</td>
-                <td>${proveedor ? proveedor.nombre : 'Desconocido'}</td>
-                <td>${factura.sucursal}</td>
-                <td>${factura.fechaFactura}</td>
-                <td>${factura.numeroFactura}</td>
-                <td>${quetzalFormatter.format(factura.montoFactura)}</td>
-                <td>${factura.fechaVencimiento}</td>
-                <td>${factura.estado}</td>
-                <td>${ultimoPago ? ultimoPago.idBoleta : 'No tiene pagos aplicados'}</td>
-                <td>${ultimoPago ? quetzalFormatter.format(montoPagoAplicado) : 'No tiene pagos aplicados'}</td>
-                <td>${ultimoPago ? ultimoPago.fechaPago : 'No tiene pagos aplicados'}</td>
-                <td>${quetzalFormatter.format(montoPagado)}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-        // Actualizar totales en el pie de la tabla
-        document.getElementById('totalFacturas').textContent = quetzalFormatter.format(totalFacturas);
-        document.getElementById('totalPagado').textContent = quetzalFormatter.format(totalPagado);
-    }
-}
-
-// Función para mostrar todas las facturas sin filtros
-function mostrarTodasFacturas() {
-    mostrarFacturas(facturas);
-}
-
-// -----------------------------
-// Funciones para Filtros y Búsqueda
-// -----------------------------
-
-// Agregar eventos a los filtros personalizados
-const filterOptions = document.getElementsByName('filterOption');
-filterOptions.forEach(option => {
-    option.addEventListener('change', filtrarFacturas);
-});
-
-// Agregar eventos a los filtros generales
-document.getElementById('searchInput').addEventListener('input', filtrarFacturas);
-document.getElementById('filterEmpresa').addEventListener('change', filtrarFacturas);
-document.getElementById('filterProveedor').addEventListener('change', filtrarFacturas);
-document.getElementById('filterSucursal').addEventListener('change', filtrarFacturas);
-document.getElementById('filterEstado').addEventListener('change', filtrarFacturas);
-document.getElementById('filterFechaInicio').addEventListener('change', filtrarFacturas);
-document.getElementById('filterFechaFin').addEventListener('change', filtrarFacturas);
-
-// Función para filtrar facturas
-function filtrarFacturas() {
-    const searchInput = document.getElementById('searchInput').value.toLowerCase();
-    const filterEmpresa = document.getElementById('filterEmpresa').value;
-    const filterProveedor = document.getElementById('filterProveedor').value;
-    const filterSucursal = document.getElementById('filterSucursal').value;
-    const filterEstado = document.getElementById('filterEstado').value;
-    const filterFechaInicio = document.getElementById('filterFechaInicio').value;
-    const filterFechaFin = document.getElementById('filterFechaFin').value;
-
-    // Obtener el valor del filtro personalizado seleccionado
-    const selectedCustomFilter = document.querySelector('input[name="filterOption"]:checked').value;
-
-    let filteredFacturas = facturas.filter(factura => {
-        const empresa = empresas.find(e => e.id === factura.empresaId);
-        const proveedor = proveedores.find(p => p.id === factura.proveedorId);
-
-        const matchesSearch = factura.numeroFactura.toLowerCase().includes(searchInput) ||
-                              (empresa ? empresa.nombre.toLowerCase().includes(searchInput) : false) ||
-                              (proveedor ? proveedor.nombre.toLowerCase().includes(searchInput) : false) ||
-                              factura.sucursal.toLowerCase().includes(searchInput);
-
-        const matchesEmpresa = filterEmpresa === "" || factura.empresaId === filterEmpresa;
-        const matchesProveedor = filterProveedor === "" || factura.proveedorId === filterProveedor;
-        const matchesSucursal = filterSucursal === "" || factura.sucursal === filterSucursal;
-        const matchesEstado = filterEstado === "" || factura.estado === filterEstado;
-
-        let matchesFecha = true;
-        if (filterFechaInicio) {
-            const fechaInicio = new Date(filterFechaInicio);
-            const fechaFactura = new Date(factura.fechaFactura);
-            matchesFecha = fechaFactura >= fechaInicio;
-        }
-        if (matchesFecha && filterFechaFin) {
-            const fechaFin = new Date(filterFechaFin);
-            const fechaFactura = new Date(factura.fechaFactura);
-            matchesFecha = fechaFactura <= fechaFin;
-        }
-
-        const matchesCustomFilter = aplicarFiltroPersonalizado(factura, selectedCustomFilter);
-
-        return matchesSearch && matchesEmpresa && matchesProveedor && matchesSucursal && matchesEstado && matchesFecha && matchesCustomFilter;
-    });
-
-    mostrarFacturas(filteredFacturas);
-}
-
-// Función para aplicar el filtro personalizado
-function aplicarFiltroPersonalizado(factura, filtro) {
-    const hoy = new Date();
-    const fechaVencimiento = new Date(factura.fechaVencimiento);
-
-    switch (filtro) {
-        case 'todas':
-            return true;
-        case 'pagadas':
-            return factura.estado === 'Pagado Completamente';
-        case 'porPagar':
-            return factura.estado === 'Pendiente';
-        case 'vencidas':
-            return fechaVencimiento < hoy && factura.estado !== 'Pagado Completamente';
-        case 'pagoPendiente':
-            return factura.estado === 'Pagado Parcialmente';
-        case 'prontoVencer':
-            const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
-            return diferenciaDias >= 0 && diferenciaDias <= 8 && factura.estado !== 'Pagado Completamente';
-        case 'porPagarHoy':
-            return fechaVencimiento.toDateString() === hoy.toDateString() && factura.estado !== 'Pagado Completamente';
-        default:
-            return true;
-    }
-}
-
-// Función para resetear todos los filtros
-function resetearFiltros() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('filterEmpresa').value = '';
-    document.getElementById('filterProveedor').value = '';
-    document.getElementById('filterSucursal').value = '';
-    document.getElementById('filterEstado').value = '';
-    document.getElementById('filterFechaInicio').value = '';
-    document.getElementById('filterFechaFin').value = '';
-    // Seleccionar "Todas las Facturas"
-    document.querySelector('input[name="filterOption"][value="todas"]').checked = true;
-    mostrarFacturas(facturas);
-}
-
-// -----------------------------
-// Funciones para Selección de Facturas
-// -----------------------------
-
-// Función para seleccionar/deseleccionar todas las facturas
-function seleccionarTodos(source) {
-    const checkboxes = document.querySelectorAll('.select-factura');
-    checkboxes.forEach(cb => {
-        cb.checked = source.checked;
-        const row = cb.closest('tr');
-        if (cb.checked) {
-            row.classList.add('selected-row');
-        } else {
-            row.classList.remove('selected-row');
-        }
-    });
-    actualizarFacturasSeleccionadas();
-}
-
-// Función para obtener las facturas seleccionadas
-function obtenerFacturasSeleccionadas() {
-    const seleccionados = [];
-    const checkboxes = document.querySelectorAll('.select-factura:checked');
-    checkboxes.forEach(cb => {
-        const factura = facturas.find(f => f.id === cb.value);
-        if (factura) seleccionados.push(factura);
-    });
-    return seleccionados;
-}
-
-// Función para actualizar la lista de facturas seleccionadas en el modal de pago
-function actualizarFacturasSeleccionadas() {
-    const facturasSeleccionadas = obtenerFacturasSeleccionadas();
-    const facturaDiv = document.getElementById('facturasSeleccionadas');
-    facturaDiv.innerHTML = '';
-
-    facturasSeleccionadas.forEach(factura => {
-        facturaDiv.innerHTML += `<p>${factura.numeroFactura} - ${quetzalFormatter.format(factura.montoFactura)}</p>`;
-    });
-
-    // Mostrar nombre de la empresa si todas las facturas pertenecen a la misma empresa
-    const empresasSeleccionadas = [...new Set(facturasSeleccionadas.map(f => f.empresaId))];
-    if (empresasSeleccionadas.length === 1) {
-        const empresa = empresas.find(e => e.id === empresasSeleccionadas[0]);
-        document.getElementById('empresaPago').value = empresa ? empresa.nombre : '';
-        cargarSucursalesEmpresaPago(empresa.id);
-    } else if (empresasSeleccionadas.length > 1) {
-        document.getElementById('empresaPago').value = 'Múltiples Empresas';
-        document.getElementById('quienDeposito').innerHTML = '<option value="">Selecciona una sucursal</option>';
-    } else {
-        document.getElementById('empresaPago').value = '';
-        document.getElementById('quienDeposito').innerHTML = '<option value="">Selecciona una sucursal</option>';
-    }
-}
-
-// Añadir evento a cada checkbox individual para actualizar la lista y resaltar la fila
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('select-factura')) {
-        const row = e.target.closest('tr');
-        if (e.target.checked) {
-            row.classList.add('selected-row');
-        } else {
-            row.classList.remove('selected-row');
-        }
-        actualizarFacturasSeleccionadas();
-    }
-});
-
-// -----------------------------
-// Funciones para Agregar Factura
-// -----------------------------
-
-// Abrir modal para agregar factura
-function abrirModalFactura() {
-    document.getElementById('facturaModal').style.display = 'block';
-    document.getElementById('modalTitleFactura').textContent = 'Agregar Factura';
-    document.getElementById('facturaForm').reset();
-    poblarSelectSucursalModal();
-}
-
-// Cerrar modal de factura
-function cerrarModalFactura() {
-    document.getElementById('facturaModal').style.display = 'none';
-}
-
-// Manejar formulario de factura (Agregar)
-document.getElementById('facturaForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const empresaId = document.getElementById('empresa').value;
-    const sucursal = document.getElementById('sucursal').value;
-    const proveedorId = document.getElementById('proveedor').value;
-    const fechaFactura = document.getElementById('fechaFactura').value;
-    const numeroFactura = document.getElementById('numeroFactura').value.trim();
-    const montoFactura = parseFloat(document.getElementById('montoFactura').value);
-    const fechaVencimiento = document.getElementById('fechaVencimiento').value;
-    const estado = document.getElementById('estado').value;
-
-    // Validación de factura duplicada
-    if (verificarFacturaDuplicada(numeroFactura)) {
-        Swal.fire('Error', 'Ya existe una factura con este número.', 'error');
-        return;
-    }
-
-    // Convertir fechaFactura a Timestamp de Firebase
-    const fechaFacturaTimestamp = firebase.firestore.Timestamp.fromDate(new Date(fechaFactura));
-
-    db.collection("facturas").add({
-        empresaId: empresaId,
-        proveedorId: proveedorId,
-        sucursal: sucursal,
-        fechaFactura: fechaFactura,
-        fechaFacturaTimestamp: fechaFacturaTimestamp,
-        numeroFactura: numeroFactura,
-        montoFactura: montoFactura,
-        fechaVencimiento: fechaVencimiento,
-        estado: estado
-    })
-    .then(() => {
-        Swal.fire('Éxito', 'Factura agregada correctamente', 'success');
-        cerrarModalFactura();
-        document.getElementById('facturaForm').reset();
-    })
-    .catch(error => {
-        console.error('Error al agregar factura:', error);
-        Swal.fire('Error', 'Hubo un problema al agregar la factura', 'error');
-    });
-});
-
-// Calcular fecha de vencimiento basada en días de crédito del proveedor
-function calcularFechaVencimiento() {
-    const proveedorId = document.getElementById('proveedor').value;
-    const fechaFactura = document.getElementById('fechaFactura').value;
-    if (proveedorId && fechaFactura) {
-        const proveedor = proveedores.find(p => p.id === proveedorId);
-        if (proveedor) {
-            const diasCredito = proveedor.diasCredito;
-            const fechaFacturaDate = new Date(fechaFactura);
-            fechaFacturaDate.setDate(fechaFacturaDate.getDate() + diasCredito);
-            const fechaVencimiento = fechaFacturaDate.toISOString().split('T')[0];
-            document.getElementById('fechaVencimiento').value = fechaVencimiento;
-        }
-    }
-}
-
-// Eventos para calcular fecha de vencimiento al cambiar proveedor o fecha de factura
-document.getElementById('proveedor').addEventListener('change', calcularFechaVencimiento);
-document.getElementById('fechaFactura').addEventListener('change', calcularFechaVencimiento);
-
-// Función para poblar sucursales en el modal de factura cuando cambia la empresa
-document.getElementById('empresa').addEventListener('change', poblarSelectSucursalModal);
-
-// -----------------------------
-// Funciones para Registrar Pago
-// -----------------------------
-
-// Abrir modal para registrar pago
-function abrirModalPago() {
-    const facturasSeleccionadas = obtenerFacturasSeleccionadas();
-    if (facturasSeleccionadas.length === 0) {
-        Swal.fire('Error', 'Debes seleccionar al menos una factura para registrar un pago.', 'error');
-        return;
-    }
-
-    // Verificar si todas las facturas pertenecen a la misma empresa
-    const empresasSeleccionadas = [...new Set(facturasSeleccionadas.map(f => f.empresaId))];
-    if (empresasSeleccionadas.length > 1) {
-        Swal.fire('Error', 'Las facturas seleccionadas pertenecen a múltiples empresas. Selecciona facturas de una sola empresa.', 'error');
-        return;
-    }
-
-    document.getElementById('pagoModal').style.display = 'block';
-    mostrarFacturasSeleccionadas();
-}
-
-// Cerrar modal de pago
-function cerrarModalPago() {
-    document.getElementById('pagoModal').style.display = 'none';
-    // Deseleccionar todas las facturas
-    const checkboxes = document.querySelectorAll('.select-factura');
-    checkboxes.forEach(cb => {
-        cb.checked = false;
-        cb.closest('tr').classList.remove('selected-row');
-    });
-    actualizarFacturasSeleccionadas();
-}
-
-// Mostrar facturas seleccionadas en el modal de pago
-function mostrarFacturasSeleccionadas() {
-    actualizarFacturasSeleccionadas();
-}
-
-// Cargar sucursales de la empresa seleccionada en "Quién Pagó"
-function cargarSucursalesEmpresaPago(empresaId) {
-    const quienDepositoSelect = document.getElementById('quienDeposito');
-    quienDepositoSelect.innerHTML = '<option value="">Selecciona una sucursal</option>';
-    const empresa = empresas.find(e => e.id === empresaId);
-    if (empresa && empresa.sucursales) {
-        empresa.sucursales.forEach(sucursal => {
-            const option = document.createElement('option');
-            option.value = sucursal;
-            option.textContent = sucursal;
-            quienDepositoSelect.appendChild(option);
-        });
-    }
-}
-
-// Manejar formulario de pago (Registrar)
-document.getElementById('pagoForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const idBoleta = document.getElementById('idBoleta').value.trim();
-    const facturasSeleccionadas = obtenerFacturasSeleccionadas();
-    const facturasIds = facturasSeleccionadas.map(f => f.id);
-    const cantidadTotal = parseFloat(document.getElementById('cantidad').value);
-    const totalFacturas = facturasSeleccionadas.reduce((total, factura) => total + factura.montoFactura, 0);
-
-    // Validar que la cantidad ingresada no sea negativa
-    if (cantidadTotal < 0) {
-        Swal.fire('Error', 'La cantidad a pagar no puede ser negativa.', 'error');
-        return;
-    }
-
-    // Distribuir la cantidad ingresada entre las facturas seleccionadas
-    // Aquí, se distribuirá proporcionalmente según el monto de cada factura
-    let montosAplicados = {};
-    facturasSeleccionadas.forEach(factura => {
-        const proporción = factura.montoFactura / totalFacturas;
-        montosAplicados[factura.id] = parseFloat((cantidadTotal * proporción).toFixed(2));
-    });
-
-    // Ajustar por posibles errores de redondeo
-    const sumaAplicada = Object.values(montosAplicados).reduce((a, b) => a + b, 0);
-    const diferencia = parseFloat((cantidadTotal - sumaAplicada).toFixed(2));
-    if (diferencia !== 0) {
-        const primeraFacturaId = facturasSeleccionadas[0].id;
-        montosAplicados[primeraFacturaId] += diferencia;
-    }
-
-    // Verificar pagos duplicados
-    if (verificarPagoDuplicado(idBoleta, facturasIds)) {
-        Swal.fire('Error', 'Ya existe un pago con este ID de Boleta para las facturas seleccionadas.', 'error');
-        return;
-    }
-
-    const formaPago = document.getElementById('formaPago').value;
-    const banco = document.getElementById('banco').value.trim();
-    const quienDeposito = document.getElementById('quienDeposito').value;
-    const fechaPago = new Date().toISOString().split('T')[0];
-
-    if (!formaPago || !banco || !quienDeposito) {
-        Swal.fire('Error', 'Por favor, completa todos los campos requeridos.', 'error');
-        return;
-    }
-
-    const pagoData = {
-        facturasIds: facturasIds,
-        montosAplicados: montosAplicados, // Asignar monto a cada factura
-        idBoleta: idBoleta,
-        cantidad: cantidadTotal,
-        formaPago: formaPago,
-        banco: banco,
-        quienDeposito: quienDeposito,
-        totalBoleta: cantidadTotal,
-        fechaPago: fechaPago
-    };
-
-    db.collection("pagos").add(pagoData)
-        .then(() => {
-            // Actualizar el estado de cada factura
-            facturasSeleccionadas.forEach(factura => {
-                actualizarEstadoFactura(factura.id);
-            });
-            Swal.fire('Éxito', 'Pago registrado correctamente', 'success');
-            cerrarModalPago();
-        })
-        .catch(error => {
-            console.error('Error al registrar pago:', error);
-            Swal.fire('Error', 'Hubo un problema al registrar el pago', 'error');
-        });
-});
-
-// Función para actualizar el estado de una factura
-function actualizarEstadoFactura(facturaId) {
-    const factura = facturas.find(f => f.id === facturaId);
-    if (!factura) return;
-
-    const montoPagado = calcularMontoPagadoSync(facturaId);
-    let nuevoEstado = 'Pendiente';
-    if (montoPagado === 0) {
-        nuevoEstado = 'Pendiente';
-    } else if (montoPagado > 0 && montoPagado < factura.montoFactura) {
-        nuevoEstado = 'Pagado Parcialmente';
-    } else if (montoPagado >= factura.montoFactura) {
-        nuevoEstado = 'Pagado Completamente';
-    }
-
-    db.collection("facturas").doc(facturaId).update({
-        estado: nuevoEstado
-    }).then(() => {
-        // No es necesario refrescar las facturas aquí, ya que el listener onSnapshot lo hace automáticamente
-    }).catch(error => {
-        console.error('Error al actualizar estado de factura:', error);
-        Swal.fire('Error', 'Hubo un problema al actualizar el estado de la factura.', 'error');
-    });
-}
-
-// -----------------------------
-// Funciones para Mostrar y CRUD de Pagos
-// -----------------------------
-
-// Mostrar pagos registrados para las facturas seleccionadas
-function mostrarPagos() {
-    const facturasSeleccionadas = obtenerFacturasSeleccionadas();
-    if (facturasSeleccionadas.length === 0) {
-        Swal.fire('Error', 'Debes seleccionar al menos una factura para ver sus pagos.', 'error');
-        return;
-    }
-
-    // Abrir el modal
-    document.getElementById('mostrarPagosModal').style.display = 'block';
-
-    const listaPagosDiv = document.getElementById('listaPagos');
-    listaPagosDiv.innerHTML = '';
-
-    // Obtener todos los pagos asociados a las facturas seleccionadas
-    const pagosFactura = pagos.filter(pago => pago.facturasIds.some(id => facturasSeleccionadas.some(f => f.id === id)));
-
-    if (pagosFactura.length === 0) {
-        listaPagosDiv.innerHTML = '<p>No hay pagos registrados para las facturas seleccionadas.</p>';
-        return;
-    }
-
-    pagosFactura.forEach(pago => {
-        const montoPagoAplicado = calcularMontoPagoAplicadoMultiple(pago, facturasSeleccionadas);
-        listaPagosDiv.innerHTML += `
-            <div class="pago-item">
-                <p><strong>ID Boleta:</strong> ${pago.idBoleta}</p>
-                <p><strong>Total Boleta:</strong> ${quetzalFormatter.format(pago.totalBoleta)}</p>
-                <p><strong>Monto Aplicado a Facturas Seleccionadas:</strong> ${quetzalFormatter.format(montoPagoAplicado)}</p>
-                <p><strong>Forma de Pago:</strong> ${pago.formaPago}</p>
-                <p><strong>Banco:</strong> ${pago.banco}</p>
-                <p><strong>Quién Pagó:</strong> ${pago.quienDeposito}</p>
-                <p><strong>Fecha de Pago:</strong> ${pago.fechaPago}</p>
-                <button onclick="abrirModalEditarPago('${pago.id}')">Editar</button>
-                <button onclick="eliminarPago('${pago.id}')">Eliminar</button>
-                <hr>
-            </div>
-        `;
-    });
-}
-
-// Cerrar modal de mostrar pagos
-function cerrarModalMostrarPagos() {
-    document.getElementById('mostrarPagosModal').style.display = 'none';
-}
-
-// Abrir modal para editar pago
-function abrirModalEditarPago(pagoId) {
-    const pagoSeleccionado = pagos.find(p => p.id === pagoId);
-    if (pagoSeleccionado) {
-        document.getElementById('editarPagoModal').style.display = 'block';
-        document.getElementById('editarPagoForm').reset();
-
-        document.getElementById('editarPagoId').value = pagoSeleccionado.id;
-        document.getElementById('editarIdBoleta').value = pagoSeleccionado.idBoleta;
-        document.getElementById('editarCantidad').value = pagoSeleccionado.cantidad.toFixed(2);
-        document.getElementById('editarFormaPago').value = pagoSeleccionado.formaPago;
-        document.getElementById('editarBanco').value = pagoSeleccionado.banco;
-        document.getElementById('editarQuienDeposito').value = pagoSeleccionado.quienDeposito;
-        document.getElementById('editarFechaPago').value = pagoSeleccionado.fechaPago;
-    }
-}
-
-// Cerrar modal de editar pago
-function cerrarModalEditarPago() {
-    document.getElementById('editarPagoModal').style.display = 'none';
-}
-
-// Manejar formulario de editar pago
-document.getElementById('editarPagoForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const pagoId = document.getElementById('editarPagoId').value;
-    const cantidad = parseFloat(document.getElementById('editarCantidad').value);
-    const formaPago = document.getElementById('editarFormaPago').value;
-    const banco = document.getElementById('editarBanco').value.trim();
-    const quienDeposito = document.getElementById('editarQuienDeposito').value.trim();
-    const fechaPago = document.getElementById('editarFechaPago').value;
-
-    if (!formaPago || !banco || !quienDeposito) {
-        Swal.fire('Error', 'Por favor, completa todos los campos requeridos.', 'error');
-        return;
-    }
-
-    db.collection("pagos").doc(pagoId).update({
-        cantidad: cantidad,
-        formaPago: formaPago,
-        banco: banco,
-        quienDeposito: quienDeposito,
-        fechaPago: fechaPago
-    })
-    .then(() => {
-        Swal.fire('Éxito', 'Pago actualizado correctamente', 'success');
-        cerrarModalEditarPago();
-    })
-    .catch(error => {
-        console.error('Error al actualizar pago:', error);
-        Swal.fire('Error', 'Hubo un problema al actualizar el pago.', 'error');
-    });
-});
-
-// Eliminar pago
-function eliminarPago(pagoId) {
-    Swal.fire({
-        title: '¿Estás seguro?',
-        text: "Esta acción eliminará el pago seleccionado.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            db.collection("pagos").doc(pagoId).delete()
-                .then(() => {
-                    Swal.fire('Eliminado', 'El pago ha sido eliminado', 'success');
-                })
-                .catch(error => {
-                    console.error('Error al eliminar pago:', error);
-                    Swal.fire('Error', 'Hubo un problema al eliminar el pago.', 'error');
-                });
-        }
-    });
-}
-
-// -----------------------------
-// Funciones para Prevención de Duplicados
-// -----------------------------
-
-// Verificar si la factura ya existe antes de agregar
-function verificarFacturaDuplicada(numeroFactura) {
-    return facturas.some(factura => factura.numeroFactura.toLowerCase() === numeroFactura.toLowerCase());
-}
-
-// Verificar si el pago ya existe antes de agregar
-function verificarPagoDuplicado(idBoleta, facturasIds) {
-    return pagos.some(pago => 
-        pago.idBoleta.toLowerCase() === idBoleta.toLowerCase() &&
-        arraysEqual(pago.facturasIds, facturasIds)
-    );
-}
-
-// Función auxiliar para comparar dos arreglos
 function arraysEqual(a, b) {
-    if (a.length !== b.length) return false;
-    a = a.slice().sort();
-    b = b.slice().sort();
-    return a.every((val, index) => val === b[index]);
+  if (a.length !== b.length) return false;
+  a = a.slice().sort();
+  b = b.slice().sort();
+  return a.every((val, index) => val === b[index]);
 }
 
-// -----------------------------
-// Funciones para Registrar Pago
-// -----------------------------
-
-// Función para calcular el monto pagado de forma síncrona
 function calcularMontoPagadoSync(facturaId) {
-    let montoPagado = 0;
-    pagos.forEach(pago => {
-        if (pago.facturasIds.includes(facturaId)) {
-            montoPagado += pago.montosAplicados[facturaId] || 0;
-        }
-    });
-    return montoPagado;
-}
-
-// Obtener el último pago asociado a una factura
-function obtenerUltimoPagoFactura(facturaId) {
-    const pagosFactura = pagos.filter(pago => pago.facturasIds.includes(facturaId));
-    if (pagosFactura.length > 0) {
-        // Suponiendo que el último pago es el más reciente basado en fechaPago
-        pagosFactura.sort((a, b) => new Date(b.fechaPago) - new Date(a.fechaPago));
-        return pagosFactura[0];
-    }
-    return null;
-}
-
-// Obtener monto del pago aplicado a la factura en un pago específico
-function obtenerMontoPagoAplicado(facturaId, pago) {
+  let montoPagado = 0;
+  pagos.forEach(pago => {
     if (pago.facturasIds.includes(facturaId)) {
-        return pago.montosAplicados ? pago.montosAplicados[facturaId] || 0 : 0;
+      montoPagado += pago.montosAplicados[facturaId] || 0;
     }
-    return 0;
+  });
+  return montoPagado;
 }
 
-// Función para calcular el monto aplicado a múltiples facturas
-function calcularMontoPagoAplicadoMultiple(pago, facturasSeleccionadas) {
-    let monto = 0;
-    facturasSeleccionadas.forEach(factura => {
-        if (pago.facturasIds.includes(factura.id)) {
-            monto += pago.montosAplicados[factura.id] || 0;
-        }
+function obtenerUltimoPagoFactura(facturaId) {
+  const pagosFactura = pagos.filter(pago => pago.facturasIds.includes(facturaId));
+  if (pagosFactura.length > 0) {
+    pagosFactura.sort((a, b) => new Date(b.fechaPago) - new Date(a.fechaPago));
+    return pagosFactura[0];
+  }
+  return null;
+}
+
+function obtenerMontoPagoAplicado(facturaId, pago) {
+  if (pago.facturasIds.includes(facturaId)) {
+    return pago.montosAplicados ? pago.montosAplicados[facturaId] || 0 : 0;
+  }
+  return 0;
+}
+
+function verificarPagoDuplicado(idBoleta, facturasIds) {
+  return pagos.some(pago => 
+    pago.idBoleta.toLowerCase() === idBoleta.toLowerCase() &&
+    arraysEqual(pago.facturasIds, facturasIds)
+  );
+}
+
+function actualizarEstadoFactura(facturaId) {
+  const factura = facturas.find(f => f.id === facturaId);
+  if (!factura) return;
+
+  const montoPagado = calcularMontoPagadoSync(facturaId);
+  let nuevoEstado = 'Pendiente';
+  if (montoPagado === 0) {
+    nuevoEstado = 'Pendiente';
+  } else if (montoPagado > 0 && montoPagado < factura.montoFactura) {
+    nuevoEstado = 'Pagado Parcialmente';
+  } else if (montoPagado >= factura.montoFactura) {
+    nuevoEstado = 'Pagado Completamente';
+  }
+
+  db.collection("facturas").doc(facturaId).update({
+    estado: nuevoEstado
+  }).catch(error => {
+    console.error('Error al actualizar estado de factura:', error);
+    Swal.fire('Error', 'Hubo un problema al actualizar el estado de la factura.', 'error');
+  });
+}
+
+// =========================
+// Poblar Selects
+// =========================
+
+function poblarSelectEmpresasFacturaModal() {
+  const empresaSelect = document.getElementById('empresa');
+  if (empresaSelect) {
+    empresaSelect.innerHTML = '<option value="">Selecciona una empresa</option>';
+    empresas.forEach(empresa => {
+      const option = document.createElement('option');
+      option.value = empresa.id;
+      option.textContent = empresa.nombre;
+      empresaSelect.appendChild(option);
     });
-    return monto;
+  }
 }
 
-// -----------------------------
-// Funciones para Eliminar Facturas
-// -----------------------------
-
-// Manejar el botón para eliminar facturas seleccionadas
-document.getElementById('eliminarFacturasBtn').addEventListener('click', eliminarFacturasSeleccionadas);
-
-// Función para eliminar las facturas seleccionadas
-function eliminarFacturasSeleccionadas() {
-    const facturasSeleccionadas = obtenerFacturasSeleccionadas();
-    if (facturasSeleccionadas.length === 0) {
-        Swal.fire('Error', 'Debes seleccionar al menos una factura para eliminar.', 'error');
-        return;
-    }
-
-    Swal.fire({
-        title: '¿Estás seguro?',
-        text: `Esta acción eliminará ${facturasSeleccionadas.length} factura(s). Esta operación no se puede deshacer.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Crear un array de promesas para eliminar todas las facturas seleccionadas
-            const eliminaciones = facturasSeleccionadas.map(factura => db.collection("facturas").doc(factura.id).delete());
-
-            Promise.all(eliminaciones)
-                .then(() => {
-                    Swal.fire('Eliminado', 'Las facturas seleccionadas han sido eliminadas.', 'success');
-                    // Opcional: Deseleccionar todas las facturas y actualizar la vista
-                    const checkboxes = document.querySelectorAll('.select-factura');
-                    checkboxes.forEach(cb => {
-                        cb.checked = false;
-                        cb.closest('tr').classList.remove('selected-row');
-                    });
-                    actualizarFacturasSeleccionadas();
-                })
-                .catch(error => {
-                    console.error('Error al eliminar facturas:', error);
-                    Swal.fire('Error', 'Hubo un problema al eliminar las facturas.', 'error');
-                });
-        }
+function poblarSelectProveedoresFacturaModal() {
+  const proveedorSelect = document.getElementById('proveedor');
+  if (proveedorSelect) {
+    proveedorSelect.innerHTML = '<option value="">Selecciona un proveedor</option>';
+    proveedores.forEach(proveedor => {
+      const option = document.createElement('option');
+      option.value = proveedor.id;
+      option.textContent = proveedor.nombre;
+      proveedorSelect.appendChild(option);
     });
+  }
 }
 
-// -----------------------------
-// Funciones para Utilidades y Eventos Globales
-// -----------------------------
+function poblarSelectEmpresaFilter() {
+  const empresaFilter = document.getElementById('filterEmpresa');
+  if (empresaFilter) {
+    empresaFilter.innerHTML = '<option value="">Todas las Empresas</option>';
+    empresas.forEach(empresa => {
+      const option = document.createElement('option');
+      option.value = empresa.id;
+      option.textContent = empresa.nombre;
+      empresaFilter.appendChild(option);
+    });
+  }
+}
 
-// Función para agregar eventos globales
-function agregarEventosGlobales() {
-    // Evento para cerrar modales al hacer clic fuera del contenido
-    window.onclick = function(event) {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(modal => {
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
+function poblarSelectProveedorFilter() {
+  const proveedorFilter = document.getElementById('filterProveedor');
+  if (proveedorFilter) {
+    proveedorFilter.innerHTML = '<option value="">Todos los Proveedores</option>';
+    proveedores.forEach(proveedor => {
+      const option = document.createElement('option');
+      option.value = proveedor.id;
+      option.textContent = proveedor.nombre;
+      proveedorFilter.appendChild(option);
+    });
+  }
+}
+
+function poblarSelectSucursalFilter() {
+  const sucursalFilter = document.getElementById('filterSucursal');
+  if (sucursalFilter) {
+    sucursalFilter.innerHTML = '<option value="">Todas las Sucursales</option>';
+    const sucursalesUnicas = [...new Set(empresas.flatMap(e => e.sucursales))];
+    sucursalesUnicas.forEach(sucursal => {
+      const option = document.createElement('option');
+      option.value = sucursal;
+      option.textContent = sucursal;
+      sucursalFilter.appendChild(option);
+    });
+  }
+}
+
+function poblarSelectSucursalModal() {
+  const empresaSelect = document.getElementById('empresa');
+  const sucursalSelect = document.getElementById('sucursal');
+  if (empresaSelect && sucursalSelect) {
+    sucursalSelect.innerHTML = '<option value="">Selecciona una sucursal</option>';
+    const empresaId = empresaSelect.value;
+    if (empresaId) {
+      const empresa = empresas.find(e => e.id === empresaId);
+      if (empresa && empresa.sucursales) {
+        empresa.sucursales.forEach(sucursal => {
+          const option = document.createElement('option');
+          option.value = sucursal;
+          option.textContent = sucursal;
+          sucursalSelect.appendChild(option);
         });
-    };
+      }
+    }
+  }
 }
 
-// -----------------------------
-// Inicialización
-// -----------------------------
+function cargarSucursalesEmpresaPago(empresaId) {
+  const quienDepositoSelect = document.getElementById('quienDeposito');
+  quienDepositoSelect.innerHTML = '<option value="">Selecciona una sucursal</option>';
+  const empresa = empresas.find(e => e.id === empresaId);
+  if (empresa && empresa.sucursales) {
+    empresa.sucursales.forEach(sucursal => {
+      const option = document.createElement('option');
+      option.value = sucursal;
+      option.textContent = sucursal;
+      quienDepositoSelect.appendChild(option);
+    });
+  }
+}
+
+function poblarSelectBoletasConSaldo() {
+  const boletaSaldoSelect = document.getElementById('boletaSaldo');
+  if (boletaSaldoSelect) {
+    boletaSaldoSelect.innerHTML = '<option value="">Selecciona una Boleta</option>';
+    const boletasConSaldo = pagos.filter(pago => pago.saldo && pago.saldo > 0);
+    boletasConSaldo.forEach(boleta => {
+      const option = document.createElement('option');
+      option.value = boleta.id;
+      option.textContent = `Boleta ID: ${boleta.idBoleta} - Saldo: ${quetzalFormatter.format(boleta.saldo)}`;
+      boletaSaldoSelect.appendChild(option);
+    });
+  }
+}
+
+// =========================
+// Mostrar Facturas
+// =========================
+
+function mostrarFacturas(facturasFiltradas) {
+  const tbody = document.querySelector('#facturasTable tbody');
+  let totalFacturas = 0;
+  let totalPagado = 0;
+
+  if (tbody) {
+    tbody.innerHTML = '';
+    facturasFiltradas.forEach(factura => {
+      const empresa = empresas.find(e => e.id === factura.empresaId);
+      const proveedor = proveedores.find(p => p.id === factura.proveedorId);
+      const montoPagado = calcularMontoPagadoSync(factura.id);
+
+      totalFacturas += factura.montoFactura;
+      totalPagado += montoPagado;
+
+      const ultimoPago = obtenerUltimoPagoFactura(factura.id);
+      const montoPagoAplicado = ultimoPago ? obtenerMontoPagoAplicado(factura.id, ultimoPago) : 0;
+
+      let filaClase = 'sin-pagos'; 
+      const hoy = new Date();
+      const fechaVencimiento = new Date(factura.fechaVencimiento);
+      if (fechaVencimiento < hoy && factura.estado !== 'Pagado Completamente') {
+        filaClase = 'vencida';
+      } else {
+        switch (factura.estado) {
+          case 'Pagado Parcialmente':
+            filaClase = 'pagado-parcialmente';
+            break;
+          case 'Pagado Completamente':
+            filaClase = 'pagado-completamente';
+            break;
+          case 'Pendiente':
+            filaClase = 'sin-pagos';
+            break;
+          default:
+            filaClase = 'sin-pagos';
+        }
+      }
+
+      const tr = document.createElement('tr');
+      tr.classList.add(filaClase);
+      tr.setAttribute('data-id', factura.id);
+      tr.innerHTML = `
+        <td><input type="checkbox" class="select-factura" value="${factura.id}" onclick="actualizarFilaSeleccionada(this)"></td>
+        <td>${empresa ? empresa.nombre : 'Desconocida'}</td>
+        <td>${proveedor ? proveedor.nombre : 'Desconocido'}</td>
+        <td>${factura.sucursal}</td>
+        <td>${factura.fechaFactura}</td>
+        <td>${factura.numeroFactura}</td>
+        <td>${quetzalFormatter.format(factura.montoFactura)}</td>
+        <td>${factura.fechaVencimiento}</td>
+        <td>${factura.estado}</td>
+        <td>${ultimoPago ? ultimoPago.idBoleta : 'No tiene pagos aplicados'}</td>
+        <td>${ultimoPago ? quetzalFormatter.format(montoPagoAplicado) : 'No tiene pagos aplicados'}</td>
+        <td>${ultimoPago ? ultimoPago.fechaPago : 'No tiene pagos aplicados'}</td>
+        <td>${quetzalFormatter.format(montoPagado)}</td>
+        <td>
+          <button class="edit-btn" onclick="abrirModalEditarFactura('${factura.id}')">Editar</button>
+          <button class="delete-btn" onclick="eliminarFactura('${factura.id}')">Eliminar</button>
+          <button class="show-pagos-btn" onclick="mostrarPagosDeFactura('${factura.id}')">Mostrar Pagos</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('totalFacturas').textContent = quetzalFormatter.format(totalFacturas);
+    document.getElementById('totalPagado').textContent = quetzalFormatter.format(totalPagado);
+  }
+}
+
+// =========================
+// Boletas con Saldo
+// =========================
+
+function cargarBoletasConSaldo() {
+  const boletasTableBody = document.querySelector('#boletasTable tbody');
+  if (!boletasTableBody) return;
+
+  boletasTableBody.innerHTML = '';
+
+  const boletasConSaldo = pagos.filter(pago => pago.saldo && pago.saldo > 0);
+
+  if (boletasConSaldo.length === 0) {
+    boletasTableBody.innerHTML = '<tr><td colspan="6">No hay boletas con saldo disponible.</td></tr>';
+    return;
+  }
+
+  boletasConSaldo.forEach(boleta => {
+    const tr = document.createElement('tr');
+
+    const tdIdBoleta = document.createElement('td');
+    tdIdBoleta.textContent = boleta.idBoleta;
+    tr.appendChild(tdIdBoleta);
+
+    const tdCantidadTotal = document.createElement('td');
+    tdCantidadTotal.textContent = quetzalFormatter.format(boleta.cantidad);
+    tr.appendChild(tdCantidadTotal);
+
+    const tdSaldo = document.createElement('td');
+    tdSaldo.textContent = quetzalFormatter.format(boleta.saldo);
+    tr.appendChild(tdSaldo);
+
+    const tdFacturas = document.createElement('td');
+    if (boleta.facturasIds && boleta.facturasIds.length > 0) {
+      const listaFacturas = document.createElement('ul');
+      boleta.facturasIds.forEach(facturaId => {
+        const factura = facturas.find(f => f.id === facturaId);
+        const li = document.createElement('li');
+        li.textContent = `Factura ${factura ? factura.numeroFactura : facturaId}`;
+        listaFacturas.appendChild(li);
+      });
+      tdFacturas.appendChild(listaFacturas);
+    } else {
+      tdFacturas.textContent = 'No aplicada a facturas';
+    }
+    tr.appendChild(tdFacturas);
+
+    const tdCantidadAplicada = document.createElement('td');
+    if (boleta.montosAplicados && Object.keys(boleta.montosAplicados).length > 0) {
+      const listaMontos = document.createElement('ul');
+      Object.entries(boleta.montosAplicados).forEach(([facturaId, monto]) => {
+        const factura = facturas.find(f => f.id === facturaId);
+        const li = document.createElement('li');
+        li.textContent = `${factura ? factura.numeroFactura : facturaId}: ${quetzalFormatter.format(monto)}`;
+        listaMontos.appendChild(li);
+      });
+      tdCantidadAplicada.appendChild(listaMontos);
+    } else {
+      tdCantidadAplicada.textContent = 'No aplicada';
+    }
+    tr.appendChild(tdCantidadAplicada);
+
+    const tdAcciones = document.createElement('td');
+    tdAcciones.innerHTML = `
+      <button class="aplicar-boleta-btn" data-boleta-id="${boleta.id}" onclick="abrirModalAplicarBoleta('${boleta.id}')">Aplicar Boleta</button>
+    `;
+    tr.appendChild(tdAcciones);
+
+    boletasTableBody.appendChild(tr);
+  });
+}
+
+// =========================
+// Validaciones de Factura
+// =========================
+
+function agregarOEditarFactura(facturaId, nuevaFactura) {
+  const { empresaId, proveedorId, numeroFactura } = nuevaFactura;
+
+  return db.collection("facturas")
+    .where("numeroFactura", "==", numeroFactura)
+    .where("empresaId", "==", empresaId)
+    .where("proveedorId", "==", proveedorId)
+    .get()
+    .then(querySnapshot => {
+      if (!querySnapshot.empty) {
+        const existeOtra = querySnapshot.docs.some(doc => doc.id !== facturaId);
+        if (existeOtra) {
+          Swal.fire('Error', 'Ya existe una factura con este número para esta empresa y proveedor.', 'error');
+          return false;
+        }
+      }
+      return true;
+    })
+    .catch(error => {
+      console.error('Error al verificar factura duplicada:', error);
+      Swal.fire('Error', 'Hubo un problema al verificar la factura duplicada.', 'error');
+      return false;
+    });
+}
+
+// =========================
+// Modales y Funciones de Factura
+// =========================
+
+function abrirModalFactura() {
+  const facturaModal = document.getElementById('facturaModal');
+  if (facturaModal) {
+    facturaModal.style.display = 'block';
+    document.getElementById('facturaForm').reset();
+    document.getElementById('modalTitleFactura').textContent = 'Agregar Factura';
+    facturaModal.removeAttribute('data-factura-id');
+    poblarSelectSucursalModal();
+  }
+}
+
+function cerrarModalFactura() {
+  const facturaModal = document.getElementById('facturaModal');
+  if (facturaModal) {
+    facturaModal.style.display = 'none';
+  }
+}
+
+document.getElementById('facturaForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const facturaModal = document.getElementById('facturaModal');
+  const empresaId = document.getElementById('empresa').value;
+  const sucursal = document.getElementById('sucursal').value;
+  const proveedorId = document.getElementById('proveedor').value;
+  const fechaFactura = document.getElementById('fechaFactura').value;
+  const numeroFactura = document.getElementById('numeroFactura').value;
+  const montoFactura = parseFloat(document.getElementById('montoFactura').value);
+  const fechaVencimiento = document.getElementById('fechaVencimiento').value;
+  const estado = document.getElementById('estado').value;
+
+  if (!empresaId || !sucursal || !proveedorId || !fechaFactura || !numeroFactura || isNaN(montoFactura) || montoFactura < 0 || !fechaVencimiento || !estado) {
+    Swal.fire('Error', 'Por favor, completa todos los campos requeridos.', 'error');
+    return;
+  }
+
+  const facturaId = facturaModal.getAttribute('data-factura-id');
+
+  const nuevaFactura = {
+    empresaId,
+    sucursal,
+    proveedorId,
+    fechaFactura,
+    numeroFactura,
+    montoFactura,
+    fechaVencimiento,
+    estado
+  };
+
+  const esValido = await agregarOEditarFactura(facturaId || null, nuevaFactura);
+  if (!esValido) return;
+
+  if (facturaId) {
+    db.collection("facturas").doc(facturaId).update(nuevaFactura)
+      .then(() => {
+        Swal.fire('Éxito', 'Factura actualizada correctamente.', 'success');
+        cerrarModalFactura();
+      })
+      .catch(error => {
+        console.error('Error al actualizar factura:', error);
+        Swal.fire('Error', 'Hubo un problema al actualizar la factura.', 'error');
+      });
+  } else {
+    db.collection("facturas").add(nuevaFactura)
+      .then(() => {
+        Swal.fire('Éxito', 'Factura agregada correctamente.', 'success');
+        cerrarModalFactura();
+      })
+      .catch(error => {
+        console.error('Error al agregar factura:', error);
+        Swal.fire('Error', 'Hubo un problema al agregar la factura.', 'error');
+      });
+  }
+});
+
+function abrirModalPago() {
+  const facturasSeleccionadas = obtenerFacturasSeleccionadas();
+  if (facturasSeleccionadas.length === 0) {
+    Swal.fire('Atención', 'Selecciona al menos una factura para registrar un pago.', 'info');
+    return;
+  }
+  const pagoModal = document.getElementById('pagoModal');
+  if (pagoModal) {
+    pagoModal.style.display = 'block';
+    document.getElementById('pagoForm').reset();
+    document.getElementById('empresaPago').value = '';
+    cargarSucursalesEmpresaPago('');
+    actualizarFacturasSeleccionadas();
+  }
+}
+
+function cerrarModalPago() {
+  const pagoModal = document.getElementById('pagoModal');
+  if (pagoModal) {
+    pagoModal.style.display = 'none';
+  }
+}
+
+function mostrarPagos() {
+  const mostrarPagosModal = document.getElementById('mostrarPagosModal');
+  if (mostrarPagosModal) {
+    mostrarPagosModal.style.display = 'block';
+    cargarListaPagos(); 
+  }
+}
+
+function cerrarModalMostrarPagos() {
+  const mostrarPagosModal = document.getElementById('mostrarPagosModal');
+  if (mostrarPagosModal) {
+    mostrarPagosModal.style.display = 'none';
+  }
+}
+
+function cerrarModalEditarPago() {
+  const editarPagoModal = document.getElementById('editarPagoModal');
+  if (editarPagoModal) {
+    editarPagoModal.style.display = 'none';
+  }
+}
+
+function cerrarModalAplicarBoleta() {
+  const aplicarBoletaModal = document.getElementById('aplicarBoletaModal');
+  if (aplicarBoletaModal) {
+    aplicarBoletaModal.style.display = 'none';
+  }
+}
+
+function abrirModalEditarFactura(facturaId) {
+  const factura = facturas.find(f => f.id === facturaId);
+  if (!factura) {
+    Swal.fire('Error', 'Factura no encontrada.', 'error');
+    return;
+  }
+
+  const facturaModal = document.getElementById('facturaModal');
+  if (facturaModal) {
+    facturaModal.style.display = 'block';
+    document.getElementById('modalTitleFactura').textContent = 'Editar Factura';
+
+    document.getElementById('empresa').value = factura.empresaId;
+    poblarSelectSucursalModal();
+    document.getElementById('sucursal').value = factura.sucursal;
+    document.getElementById('proveedor').value = factura.proveedorId;
+    document.getElementById('fechaFactura').value = factura.fechaFactura;
+    document.getElementById('numeroFactura').value = factura.numeroFactura;
+    document.getElementById('montoFactura').value = factura.montoFactura;
+    document.getElementById('fechaVencimiento').value = factura.fechaVencimiento;
+    document.getElementById('estado').value = factura.estado;
+
+    facturaModal.setAttribute('data-factura-id', facturaId);
+  }
+}
+
+function eliminarFactura(facturaId) {
+  Swal.fire({
+    title: '¿Estás seguro?',
+    text: "Esta acción eliminará la factura seleccionada.",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      db.collection("facturas").doc(facturaId).delete()
+        .then(() => {
+          Swal.fire('Eliminado', 'La factura ha sido eliminada.', 'success');
+        })
+        .catch(error => {
+          console.error('Error al eliminar factura:', error);
+          Swal.fire('Error', 'Hubo un problema al eliminar la factura.', 'error');
+        });
+    }
+  });
+}
+
+// =========================
+// Validación antes de agregar Pago (Boleta)
+// =========================
+
+function verificarBoletaDuplicada(idBoleta) {
+  return db.collection("pagos").where("idBoleta", "==", idBoleta).get()
+    .then(querySnapshot => {
+      if (!querySnapshot.empty) {
+        Swal.fire('Error', 'Ya existe una boleta con ese ID Boleta.', 'error');
+        return false;
+      }
+      return true;
+    })
+    .catch(error => {
+      console.error('Error al verificar boleta duplicada:', error);
+      Swal.fire('Error', 'Hubo un problema al verificar la boleta duplicada.', 'error');
+      return false;
+    });
+}
+
+// =========================
+// Manejo de Pagos (Registrar/Editar/Eliminar)
+// =========================
+
+document.getElementById('pagoForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const idBoleta = document.getElementById('idBoleta').value.trim();
+  const facturasSeleccionadas = obtenerFacturasSeleccionadas();
+  let cantidadPago = parseFloat(document.getElementById('cantidad').value);
+  const formaPago = document.getElementById('formaPago').value;
+  const banco = document.getElementById('banco').value.trim();
+  const quienDeposito = document.getElementById('quienDeposito').value;
+  const empresaPago = document.getElementById('empresaPago').value.trim();
+
+  if (!idBoleta || facturasSeleccionadas.length === 0 || isNaN(cantidadPago) || cantidadPago <= 0 || !formaPago || !banco || !quienDeposito || !empresaPago) {
+    Swal.fire('Error', 'Por favor, completa todos los campos requeridos correctamente.', 'error');
+    return;
+  }
+
+  const puedeContinuar = await verificarBoletaDuplicada(idBoleta);
+  if (!puedeContinuar) return;
+
+  const montosAplicados = {};
+  let montoTotalAplicado = 0;
+  let montoRestante = cantidadPago;
+
+  facturasSeleccionadas.forEach(factura => {
+    const montoPendiente = factura.montoFactura - calcularMontoPagadoSync(factura.id);
+    if (montoPendiente > 0 && montoRestante > 0) {
+      const montoAplicado = Math.min(montoPendiente, montoRestante);
+      montosAplicados[factura.id] = montoAplicado;
+      montoTotalAplicado += montoAplicado;
+      montoRestante -= montoAplicado;
+    }
+  });
+
+  const leftover = montoRestante > 0 ? montoRestante : 0;
+
+  const facturasIds = facturasSeleccionadas.map(f => f.id);
+  if (verificarPagoDuplicado(idBoleta, facturasIds)) {
+    Swal.fire('Error', 'Este pago ya ha sido registrado para las facturas seleccionadas.', 'error');
+    return;
+  }
+
+  const nuevoPago = {
+    idBoleta,
+    facturasIds,
+    montosAplicados,
+    cantidad: cantidadPago,
+    formaPago,
+    banco,
+    quienDeposito,
+    fechaPago: new Date().toISOString().split('T')[0],
+    saldo: leftover
+  };
+
+  if (leftover > 0) {
+    Swal.fire({
+      title: 'Advertencia',
+      text: `El pago excede el monto total de las facturas seleccionadas en ${quetzalFormatter.format(leftover)}. Este excedente se convertirá en una boleta con saldo disponible para aplicar a otras facturas. ¿Deseas continuar?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, continuar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        db.collection("pagos").add(nuevoPago)
+          .then(() => {
+            facturasSeleccionadas.forEach(factura => {
+              actualizarEstadoFactura(factura.id);
+            });
+            Swal.fire('Éxito', 'Pago registrado correctamente. Se generó una boleta con saldo.', 'success');
+            cerrarModalPago();
+          })
+          .catch(error => {
+            console.error('Error al registrar pago:', error);
+            Swal.fire('Error', 'Hubo un problema al registrar el pago.', 'error');
+          });
+      }
+    });
+  } else {
+    db.collection("pagos").add(nuevoPago)
+      .then(() => {
+        facturasSeleccionadas.forEach(factura => {
+          actualizarEstadoFactura(factura.id);
+        });
+        Swal.fire('Éxito', 'Pago registrado correctamente.', 'success');
+        cerrarModalPago();
+      })
+      .catch(error => {
+        console.error('Error al registrar pago:', error);
+        Swal.fire('Error', 'Hubo un problema al registrar el pago.', 'error');
+      });
+  }
+});
+
+function abrirModalEditarPago(pagoId) {
+  const pagoSeleccionado = pagos.find(p => p.id === pagoId);
+  if (pagoSeleccionado) {
+    const editarPagoModal = document.getElementById('editarPagoModal');
+    if (editarPagoModal) {
+      editarPagoModal.style.display = 'block';
+      document.getElementById('editarPagoForm').reset();
+
+      document.getElementById('editarPagoId').value = pagoSeleccionado.id;
+      document.getElementById('editarIdBoleta').value = pagoSeleccionado.idBoleta;
+      document.getElementById('editarCantidad').value = pagoSeleccionado.cantidad.toFixed(2);
+      document.getElementById('editarFormaPago').value = pagoSeleccionado.formaPago;
+      document.getElementById('editarBanco').value = pagoSeleccionado.banco;
+      document.getElementById('editarQuienDeposito').value = pagoSeleccionado.quienDeposito;
+      document.getElementById('editarFechaPago').value = pagoSeleccionado.fechaPago;
+    }
+  }
+}
+
+function eliminarPago(pagoId) {
+  Swal.fire({
+    title: '¿Estás seguro?',
+    text: "Esta acción eliminará el pago seleccionado.",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      db.collection("pagos").doc(pagoId).delete()
+        .then(() => {
+          Swal.fire('Eliminado', 'El pago ha sido eliminado.', 'success');
+        })
+        .catch(error => {
+          console.error('Error al eliminar pago:', error);
+          Swal.fire('Error', 'Hubo un problema al eliminar el pago.', 'error');
+        });
+    }
+  });
+}
+
+document.getElementById('editarPagoForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pagoId = document.getElementById('editarPagoId').value;
+  const cantidad = parseFloat(document.getElementById('editarCantidad').value);
+  const formaPago = document.getElementById('editarFormaPago').value;
+  const banco = document.getElementById('editarBanco').value.trim();
+  const quienDeposito = document.getElementById('editarQuienDeposito').value.trim();
+  const fechaPago = document.getElementById('editarFechaPago').value;
+
+  if (!formaPago || !banco || !quienDeposito || isNaN(cantidad) || cantidad <= 0) {
+    Swal.fire('Error', 'Por favor, completa todos los campos requeridos correctamente.', 'error');
+    return;
+  }
+
+  db.collection("pagos").doc(pagoId).update({
+    cantidad: cantidad,
+    formaPago: formaPago,
+    banco: banco,
+    quienDeposito: quienDeposito,
+    fechaPago: fechaPago
+  })
+  .then(() => {
+    Swal.fire('Éxito', 'Pago actualizado correctamente.', 'success');
+    cerrarModalEditarPago();
+  })
+  .catch(error => {
+    console.error('Error al actualizar pago:', error);
+    Swal.fire('Error', 'Hubo un problema al actualizar el pago.', 'error');
+  });
+});
+
+function cargarListaPagos() {
+  const listaPagosDiv = document.getElementById('listaPagos');
+  if (!listaPagosDiv) return;
+
+  listaPagosDiv.innerHTML = '';
+
+  if (pagos.length === 0) {
+    listaPagosDiv.innerHTML = '<p>No hay pagos registrados.</p>';
+    return;
+  }
+
+  pagos.forEach(pago => {
+    const pagoItem = document.createElement('div');
+    pagoItem.classList.add('pago-item');
+    pagoItem.innerHTML = `
+      <p><strong>ID Boleta:</strong> ${pago.idBoleta}</p>
+      <p><strong>Total de la Boleta:</strong> ${quetzalFormatter.format(pago.cantidad)}</p>
+      <p><strong>Saldo:</strong> ${quetzalFormatter.format(pago.saldo || 0)}</p>
+      <p><strong>Forma de Pago:</strong> ${pago.formaPago}</p>
+      <p><strong>Banco:</strong> ${pago.banco}</p>
+      <p><strong>Quién Deposito:</strong> ${pago.quienDeposito}</p>
+      <p><strong>Fecha de Pago:</strong> ${pago.fechaPago}</p>
+      <button onclick="abrirModalEditarPago('${pago.id}')">Editar</button>
+      <button onclick="eliminarPago('${pago.id}')">Eliminar</button>
+      <hr>
+    `;
+    listaPagosDiv.appendChild(pagoItem);
+  });
+}
+
+function mostrarPagosDeFactura(facturaId) {
+  const listaPagosDiv = document.getElementById('listaPagos');
+  if (!listaPagosDiv) return;
+
+  const pagosDeLaFactura = pagos.filter(pago => pago.facturasIds.includes(facturaId));
+
+  const mostrarPagosModal = document.getElementById('mostrarPagosModal');
+  if (mostrarPagosModal) {
+    mostrarPagosModal.style.display = 'block';
+  }
+
+  listaPagosDiv.innerHTML = '';
+
+  if (pagosDeLaFactura.length === 0) {
+    listaPagosDiv.innerHTML = '<p>No hay pagos registrados para esta factura.</p>';
+    return;
+  }
+
+  pagosDeLaFactura.forEach(pago => {
+    const montoAplicado = pago.montosAplicados[facturaId] || 0;
+    const pagoItem = document.createElement('div');
+    pagoItem.classList.add('pago-item');
+    pagoItem.innerHTML = `
+      <p><strong>ID Boleta:</strong> ${pago.idBoleta}</p>
+      <p><strong>Total de la Boleta:</strong> ${quetzalFormatter.format(pago.cantidad)}</p>
+      <p><strong>Cantidad Aplicada a esta Factura:</strong> ${quetzalFormatter.format(montoAplicado)}</p>
+      <p><strong>Saldo:</strong> ${quetzalFormatter.format(pago.saldo || 0)}</p>
+      <p><strong>Forma de Pago:</strong> ${pago.formaPago}</p>
+      <p><strong>Banco:</strong> ${pago.banco}</p>
+      <p><strong>Quién Deposito:</strong> ${pago.quienDeposito}</p>
+      <p><strong>Fecha de Pago:</strong> ${pago.fechaPago}</p>
+      <button onclick="abrirModalEditarPago('${pago.id}')">Editar</button>
+      <button onclick="eliminarPago('${pago.id}')">Eliminar</button>
+      <hr>
+    `;
+    listaPagosDiv.appendChild(pagoItem);
+  });
+}
+
+// =========================
+// Manejo de Selecciones
+// =========================
+
+function actualizarFacturasSeleccionadas() {
+  const facturasSeleccionadas = obtenerFacturasSeleccionadas();
+  const facturaDiv = document.getElementById('facturasSeleccionadas');
+  if (!facturaDiv) return;
+  facturaDiv.innerHTML = '';
+
+  let totalPendiente = 0;
+  facturasSeleccionadas.forEach(factura => {
+    const montoPendiente = factura.montoFactura - calcularMontoPagadoSync(factura.id);
+    facturaDiv.innerHTML += `<p>ID: ${factura.numeroFactura} - Total: ${quetzalFormatter.format(factura.montoFactura)} - Pendiente: ${quetzalFormatter.format(montoPendiente)}</p>`;
+    totalPendiente += montoPendiente;
+  });
+
+  const empresasSeleccionadas = [...new Set(facturasSeleccionadas.map(f => f.empresaId))];
+  if (empresasSeleccionadas.length === 1) {
+    const empresa = empresas.find(e => e.id === empresasSeleccionadas[0]);
+    document.getElementById('empresaPago').value = empresa ? empresa.nombre : '';
+    cargarSucursalesEmpresaPago(empresa.id);
+  } else if (empresasSeleccionadas.length > 1) {
+    document.getElementById('empresaPago').value = 'Múltiples Empresas';
+    document.getElementById('quienDeposito').innerHTML = '<option value="">Selecciona una sucursal</option>';
+  } else {
+    document.getElementById('empresaPago').value = '';
+    document.getElementById('quienDeposito').innerHTML = '<option value="">Selecciona una sucursal</option>';
+  }
+
+  const cantidadInput = document.getElementById('cantidad');
+  const saldoDisponibleDiv = document.getElementById('saldoDisponible');
+  if (saldoDisponibleDiv) {
+    if (cantidadInput && cantidadInput.value) {
+      const cantidad = parseFloat(cantidadInput.value);
+      saldoDisponibleDiv.innerHTML = `<p><strong>Saldo Disponible:</strong> ${cantidad > totalPendiente ? quetzalFormatter.format(cantidad - totalPendiente) : 'Q0.00'}</p>`;
+    } else {
+      saldoDisponibleDiv.innerHTML = `<p><strong>Saldo Disponible:</strong> Q0.00</p>`;
+    }
+  }
+}
+
+function obtenerFacturasSeleccionadas() {
+  const seleccionados = [];
+  const checkboxes = document.querySelectorAll('.select-factura:checked');
+  checkboxes.forEach(cb => {
+    const factura = facturas.find(f => f.id === cb.value);
+    if (factura) seleccionados.push(factura);
+  });
+  return seleccionados;
+}
+
+function actualizarFilaSeleccionada(checkbox) {
+  const row = checkbox.closest('tr');
+  if (row) {
+    if (checkbox.checked) {
+      row.classList.add('selected-row');
+    } else {
+      row.classList.remove('selected-row');
+    }
+  }
+  actualizarFacturasSeleccionadas();
+}
+
+// =========================
+// Filtros
+// =========================
+
+function filtrarFacturas() {
+  const searchInput = document.getElementById('searchInput').value.toLowerCase();
+  const filterEmpresa = document.getElementById('filterEmpresa').value;
+  const filterProveedor = document.getElementById('filterProveedor').value;
+  const filterSucursal = document.getElementById('filterSucursal').value;
+  const filterEstado = document.getElementById('filterEstado').value;
+  const filterFechaInicio = document.getElementById('filterFechaInicio').value;
+  const filterFechaFin = document.getElementById('filterFechaFin').value;
+  const yearSelect = document.getElementById('yearSelect') ? document.getElementById('yearSelect').value : '';
+
+  let filteredFacturas = facturas.filter(factura => {
+    const empresa = empresas.find(e => e.id === factura.empresaId);
+    const proveedor = proveedores.find(p => p.id === factura.proveedorId);
+
+    const matchesSearch = factura.numeroFactura.toLowerCase().includes(searchInput) ||
+                          (empresa ? empresa.nombre.toLowerCase().includes(searchInput) : false) ||
+                          (proveedor ? proveedor.nombre.toLowerCase().includes(searchInput) : false) ||
+                          factura.sucursal.toLowerCase().includes(searchInput);
+
+    const matchesEmpresa = filterEmpresa === "" || factura.empresaId === filterEmpresa;
+    const matchesProveedor = filterProveedor === "" || factura.proveedorId === filterProveedor;
+    const matchesSucursal = filterSucursal === "" || factura.sucursal === filterSucursal;
+    const matchesEstado = filterEstado === "" || factura.estado === filterEstado;
+
+    let matchesFecha = true;
+    if (filterFechaInicio) {
+      const fechaInicio = new Date(filterFechaInicio);
+      const fechaFactura = new Date(factura.fechaFactura);
+      matchesFecha = fechaFactura >= fechaInicio;
+    }
+    if (matchesFecha && filterFechaFin) {
+      const fechaFin = new Date(filterFechaFin);
+      const fechaFactura = new Date(factura.fechaFactura);
+      matchesFecha = fechaFactura <= fechaFin;
+    }
+
+    if (yearSelect) {
+      const añoFactura = new Date(factura.fechaFactura).getFullYear();
+      matchesFecha = matchesFecha && (añoFactura === parseInt(yearSelect));
+    }
+
+    return matchesSearch && matchesEmpresa && matchesProveedor && matchesSucursal && matchesEstado && matchesFecha;
+  });
+
+  mostrarFacturas(filteredFacturas);
+}
+
+function resetearFiltros() {
+  const searchInput = document.getElementById('searchInput');
+  const filterEmpresa = document.getElementById('filterEmpresa');
+  const filterProveedor = document.getElementById('filterProveedor');
+  const filterSucursal = document.getElementById('filterSucursal');
+  const filterEstado = document.getElementById('filterEstado');
+  const filterFechaInicio = document.getElementById('filterFechaInicio');
+  const filterFechaFin = document.getElementById('filterFechaFin');
+  const yearSelect = document.getElementById('yearSelect');
+
+  if (searchInput) searchInput.value = '';
+  if (filterEmpresa) filterEmpresa.value = '';
+  if (filterProveedor) filterProveedor.value = '';
+  if (filterSucursal) filterSucursal.value = '';
+  if (filterEstado) filterEstado.value = '';
+  if (filterFechaInicio) filterFechaInicio.value = '';
+  if (filterFechaFin) filterFechaFin.value = '';
+  if (yearSelect) yearSelect.value = '';
+
+  mostrarFacturas(facturas);
+}
+
+// =========================
+// Seleccionar/Deseleccionar Todas las Facturas
+// =========================
+
+function seleccionarTodos(source) {
+  const checkboxes = document.querySelectorAll('.select-factura');
+  checkboxes.forEach(cb => {
+    cb.checked = source.checked;
+    const row = cb.closest('tr');
+    if (cb.checked) {
+      row.classList.add('selected-row');
+    } else {
+      row.classList.remove('selected-row');
+    }
+  });
+  actualizarFacturasSeleccionadas();
+}
+
+// =========================
+// Eventos Globales
+// =========================
+
+function agregarEventosGlobales() {
+  window.onclick = function(event) {
+    const modales = document.querySelectorAll('.modal');
+    modales.forEach(modal => {
+      if (event.target == modal) {
+        modal.style.display = 'none';
+      }
+    });
+  };
+
+  const searchInput = document.getElementById('searchInput');
+  const filterEmpresa = document.getElementById('filterEmpresa');
+  const filterProveedor = document.getElementById('filterProveedor');
+  const filterSucursal = document.getElementById('filterSucursal');
+  const filterEstado = document.getElementById('filterEstado');
+  const filterFechaInicio = document.getElementById('filterFechaInicio');
+  const filterFechaFin = document.getElementById('filterFechaFin');
+  const yearSelect = document.getElementById('yearSelect');
+
+  if (searchInput) searchInput.addEventListener('input', filtrarFacturas);
+  if (filterEmpresa) filterEmpresa.addEventListener('change', filtrarFacturas);
+  if (filterProveedor) filterProveedor.addEventListener('change', filtrarFacturas);
+  if (filterSucursal) filterSucursal.addEventListener('change', filtrarFacturas);
+  if (filterEstado) filterEstado.addEventListener('change', filtrarFacturas);
+  if (filterFechaInicio) filterFechaInicio.addEventListener('change', filtrarFacturas);
+  if (filterFechaFin) filterFechaFin.addEventListener('change', filtrarFacturas);
+  if (yearSelect) yearSelect.addEventListener('change', filtrarFacturas);
+}
+
+function calcularFechaVencimiento() {
+  const proveedorId = document.getElementById('proveedor').value;
+  const fechaFactura = document.getElementById('fechaFactura').value;
+  if (proveedorId && fechaFactura) {
+    const proveedor = proveedores.find(p => p.id === proveedorId);
+    if (proveedor && proveedor.diasCredito) {
+      const diasCredito = proveedor.diasCredito;
+      const fechaFacturaDate = new Date(fechaFactura);
+      fechaFacturaDate.setDate(fechaFacturaDate.getDate() + diasCredito);
+      const fechaVencimiento = fechaFacturaDate.toISOString().split('T')[0];
+      document.getElementById('fechaVencimiento').value = fechaVencimiento;
+    }
+  }
+}
+
+// =========================
+// Cargar Datos Iniciales
+// =========================
+
+function agregarListenerCambioEmpresa() {
+  const empresaSelect = document.getElementById('empresa');
+  const sucursalSelect = document.getElementById('sucursal');
+
+  if (empresaSelect && sucursalSelect) {
+    empresaSelect.addEventListener('change', function() {
+      poblarSelectSucursalModal();
+    });
+  }
+}
+
+function cargarDatosIniciales() {
+  cargarEmpresas();
+  cargarProveedores();
+  cargarFacturas();
+  cargarPagos();
+  cargarAnios();
+  agregarEventosGlobales();
+  agregarListenerCambioEmpresa();
+}
+
 window.onload = function() {
-    cargarDatosIniciales();
+  cargarDatosIniciales();
 };
+
+// =========================
+// Cargar y Escuchar Cambios en Firestore
+// =========================
+
+function cargarEmpresas() {
+  db.collection("empresas").get()
+    .then(querySnapshot => {
+      empresas = [];
+      querySnapshot.forEach(doc => {
+        empresas.push({ id: doc.id, ...doc.data() });
+      });
+      poblarSelectEmpresasFacturaModal();
+      poblarSelectEmpresaFilter();
+      poblarSelectSucursalFilter();
+    })
+    .catch(error => {
+      console.error("Error al cargar empresas: ", error);
+      Swal.fire('Error', 'Hubo un problema al cargar las empresas.', 'error');
+    });
+}
+
+function cargarProveedores() {
+  db.collection("proveedores").get()
+    .then(querySnapshot => {
+      proveedores = [];
+      querySnapshot.forEach(doc => {
+        proveedores.push({ id: doc.id, ...doc.data() });
+      });
+      poblarSelectProveedoresFacturaModal();
+      poblarSelectProveedorFilter();
+    })
+    .catch(error => {
+      console.error("Error al cargar proveedores: ", error);
+      Swal.fire('Error', 'Hubo un problema al cargar los proveedores.', 'error');
+    });
+}
+
+function cargarFacturas() {
+  db.collection("facturas").onSnapshot(snapshot => {
+    facturas = [];
+    snapshot.forEach(doc => {
+      facturas.push({ id: doc.id, ...doc.data() });
+    });
+    filtrarFacturas();
+  }, error => {
+    console.error("Error al cargar facturas: ", error);
+    Swal.fire('Error', 'Hubo un problema al cargar las facturas.', 'error');
+  });
+}
+
+function cargarPagos() {
+  db.collection("pagos").onSnapshot(snapshot => {
+    pagos = [];
+    snapshot.forEach(doc => {
+      pagos.push({ id: doc.id, ...doc.data() });
+    });
+    poblarSelectBoletasConSaldo();
+    cargarBoletasConSaldo();
+  }, error => {
+    console.error("Error al cargar pagos: ", error);
+    Swal.fire('Error', 'Hubo un problema al cargar los pagos.', 'error');
+  });
+}
+
+function cargarAnios() {
+  const yearSelect = document.getElementById('yearSelect');
+  if (!yearSelect) return;
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear; y >= 2000; y--) {
+    const option = document.createElement('option');
+    option.value = y;
+    option.textContent = y;
+    yearSelect.appendChild(option);
+  }
+}
+
+// =========================
+// Funciones para Aplicar Boleta
+// =========================
+
+function abrirModalAplicarBoleta(boletaId) {
+  const aplicarBoletaModal = document.getElementById('aplicarBoletaModal');
+  if (!aplicarBoletaModal) return;
+
+  const boletaSeleccionada = pagos.find(p => p.id === boletaId && p.saldo > 0);
+  if (!boletaSeleccionada) {
+    Swal.fire('Error', 'No se encontró la boleta seleccionada o no tiene saldo disponible.', 'error');
+    return;
+  }
+
+  if (!boletaSeleccionada.facturasIds || boletaSeleccionada.facturasIds.length === 0) {
+    Swal.fire('Error', 'La boleta no tiene facturas originales asociadas, no se puede determinar empresa/proveedor.', 'error');
+    return;
+  }
+
+  const facturaOriginalId = boletaSeleccionada.facturasIds[0];
+  const facturaOriginal = facturas.find(f => f.id === facturaOriginalId);
+
+  if (!facturaOriginal) {
+    Swal.fire('Error', 'No se encontró la factura original de la boleta. No se puede continuar.', 'error');
+    return;
+  }
+
+  const facturasPendientes = facturas.filter(f => 
+    f.empresaId === facturaOriginal.empresaId &&
+    f.proveedorId === facturaOriginal.proveedorId &&
+    (f.estado === 'Pendiente' || f.estado === 'Pagado Parcialmente')
+  );
+
+  const boletaInfoDiv = document.getElementById('boletaSeleccionadaInfo');
+  boletaInfoDiv.innerHTML = `
+    <p><strong>ID Boleta:</strong> ${boletaSeleccionada.idBoleta}</p>
+    <p><strong>Saldo Disponible:</strong> ${quetzalFormatter.format(boletaSeleccionada.saldo)}</p>
+  `;
+  boletaInfoDiv.setAttribute('data-boleta-id', boletaSeleccionada.id);
+
+  const facturasPendientesDiv = document.getElementById('facturasPendientes');
+  facturasPendientesDiv.innerHTML = '';
+
+  if (facturasPendientes.length === 0) {
+    facturasPendientesDiv.innerHTML = '<p>No hay facturas pendientes o parcialmente pagadas que coincidan con la empresa y proveedor.</p>';
+  } else {
+    facturasPendientes.forEach(fact => {
+      const montoPendiente = fact.montoFactura - calcularMontoPagadoSync(fact.id);
+      const facturaItem = document.createElement('div');
+      facturaItem.innerHTML = `
+        <label>
+          <input type="radio" name="facturaSeleccionada" value="${fact.id}">
+          Factura: ${fact.numeroFactura} | Monto Pendiente: ${quetzalFormatter.format(montoPendiente)}
+        </label>
+      `;
+      facturasPendientesDiv.appendChild(facturaItem);
+    });
+  }
+
+  aplicarBoletaModal.style.display = 'block';
+}
+
+document.getElementById('aplicarBoletaForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const montoAplicacion = parseFloat(document.getElementById('montoAplicacion').value);
+  const facturaSeleccionadaId = document.querySelector('input[name="facturaSeleccionada"]:checked') ?
+    document.querySelector('input[name="facturaSeleccionada"]:checked').value : null;
+
+  if (!facturaSeleccionadaId || isNaN(montoAplicacion) || montoAplicacion <= 0) {
+    Swal.fire('Error', 'Selecciona una factura y un monto válido para aplicar.', 'error');
+    return;
+  }
+
+  const boletaId = document.getElementById('boletaSeleccionadaInfo').getAttribute('data-boleta-id');
+  const boletaSeleccionada = pagos.find(p => p.id === boletaId && p.saldo > 0);
+  if (!boletaSeleccionada) {
+    Swal.fire('Error', 'No se encontró la boleta o ya no tiene saldo disponible.', 'error');
+    return;
+  }
+
+  if (montoAplicacion > boletaSeleccionada.saldo) {
+    Swal.fire('Error', 'El monto a aplicar excede el saldo disponible de la boleta.', 'error');
+    return;
+  }
+
+  const facturaAplicar = facturas.find(f => f.id === facturaSeleccionadaId);
+  if (!facturaAplicar) {
+    Swal.fire('Error', 'No se encontró la factura seleccionada.', 'error');
+    return;
+  }
+
+  const facturaOriginal = facturas.find(f => f.id === boletaSeleccionada.facturasIds[0]);
+  if (!facturaOriginal) {
+    Swal.fire('Error', 'No se pudo validar empresa y proveedor.', 'error');
+    return;
+  }
+
+  if (facturaOriginal.empresaId !== facturaAplicar.empresaId || facturaOriginal.proveedorId !== facturaAplicar.proveedorId) {
+    Swal.fire('Error', 'La factura seleccionada no pertenece a la misma empresa o proveedor.', 'error');
+    return;
+  }
+
+  const montoPendienteFactura = facturaAplicar.montoFactura - calcularMontoPagadoSync(facturaAplicar.id);
+  if (montoAplicacion > montoPendienteFactura) {
+    Swal.fire('Error', `El monto a aplicar excede el monto pendiente de la factura (${quetzalFormatter.format(montoPendienteFactura)}).`, 'error');
+    return;
+  }
+
+  const pagoRef = db.collection("pagos").doc(boletaSeleccionada.id);
+  const nuevosMontosAplicados = { ...boletaSeleccionada.montosAplicados };
+  const nuevasFacturasIds = [...boletaSeleccionada.facturasIds];
+
+  if (!nuevosMontosAplicados[facturaSeleccionadaId]) {
+    nuevosMontosAplicados[facturaSeleccionadaId] = 0;
+    if (!nuevasFacturasIds.includes(facturaSeleccionadaId)) {
+      nuevasFacturasIds.push(facturaSeleccionadaId);
+    }
+  }
+
+  nuevosMontosAplicados[facturaSeleccionadaId] += montoAplicacion;
+  const nuevoSaldo = boletaSeleccionada.saldo - montoAplicacion;
+
+  pagoRef.update({
+    montosAplicados: nuevosMontosAplicados,
+    facturasIds: nuevasFacturasIds,
+    saldo: nuevoSaldo
+  })
+  .then(() => {
+    actualizarEstadoFactura(facturaSeleccionadaId);
+    Swal.fire('Éxito', `Se aplicaron ${quetzalFormatter.format(montoAplicacion)} a la factura ${facturaAplicar.numeroFactura}.`, 'success');
+    document.getElementById('montoAplicacion').value = '';
+    abrirModalAplicarBoleta(boletaSeleccionada.id);
+  })
+  .catch(error => {
+    console.error('Error al aplicar boleta:', error);
+    Swal.fire('Error', 'Hubo un problema al aplicar la boleta.', 'error');
+  });
+});
