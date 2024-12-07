@@ -994,6 +994,17 @@ function agregarEventosGlobales() {
   if (filterFechaInicio) filterFechaInicio.addEventListener('change', filtrarFacturas);
   if (filterFechaFin) filterFechaFin.addEventListener('change', filtrarFacturas);
   if (yearSelect) yearSelect.addEventListener('change', filtrarFacturas);
+
+  // Cuando cambie el proveedor, recalcular la fecha de vencimiento si ya hay fecha de factura seleccionada
+  const proveedorSelect = document.getElementById('proveedor');
+  if (proveedorSelect) {
+    proveedorSelect.addEventListener('change', function() {
+      const fechaFactura = document.getElementById('fechaFactura').value;
+      if (fechaFactura) {
+        calcularFechaVencimiento();
+      }
+    });
+  }
 }
 
 function calcularFechaVencimiento() {
@@ -1117,7 +1128,7 @@ function cargarAnios() {
 }
 
 // =========================
-// Funciones para Aplicar Boleta
+// Aplicar Boleta (Confirmación de Monto a Aplicar)
 // =========================
 
 function abrirModalAplicarBoleta(boletaId) {
@@ -1193,7 +1204,7 @@ document.getElementById('aplicarBoletaForm').addEventListener('submit', function
   const boletaId = document.getElementById('boletaSeleccionadaInfo').getAttribute('data-boleta-id');
   const boletaSeleccionada = pagos.find(p => p.id === boletaId && p.saldo > 0);
   if (!boletaSeleccionada) {
-    Swal.fire('Error', 'No se encontró la boleta o ya no tiene saldo disponible.', 'error');
+    Swal.fire('Error', 'No se encontró la boleta seleccionada o no tiene saldo disponible.', 'error');
     return;
   }
 
@@ -1225,33 +1236,44 @@ document.getElementById('aplicarBoletaForm').addEventListener('submit', function
     return;
   }
 
-  const pagoRef = db.collection("pagos").doc(boletaSeleccionada.id);
-  const nuevosMontosAplicados = { ...boletaSeleccionada.montosAplicados };
-  const nuevasFacturasIds = [...boletaSeleccionada.facturasIds];
+  // Confirmación antes de aplicar
+  Swal.fire({
+    title: 'Confirmar Aplicación',
+    text: `Se aplicarán ${quetzalFormatter.format(montoAplicacion)} a la factura ${facturaAplicar.numeroFactura}. ¿Deseas continuar?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, aplicar',
+    cancelButtonText: 'Cancelar'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const pagoRef = db.collection("pagos").doc(boletaSeleccionada.id);
+      const nuevosMontosAplicados = { ...boletaSeleccionada.montosAplicados };
+      const nuevasFacturasIds = [...boletaSeleccionada.facturasIds];
 
-  if (!nuevosMontosAplicados[facturaSeleccionadaId]) {
-    nuevosMontosAplicados[facturaSeleccionadaId] = 0;
-    if (!nuevasFacturasIds.includes(facturaSeleccionadaId)) {
-      nuevasFacturasIds.push(facturaSeleccionadaId);
+      if (!nuevosMontosAplicados[facturaSeleccionadaId]) {
+        nuevosMontosAplicados[facturaSeleccionadaId] = 0;
+        if (!nuevasFacturasIds.includes(facturaSeleccionadaId)) {
+          nuevasFacturasIds.push(facturaSeleccionadaId);
+        }
+      }
+
+      nuevosMontosAplicados[facturaSeleccionadaId] += montoAplicacion;
+      const nuevoSaldo = boletaSeleccionada.saldo - montoAplicacion;
+
+      pagoRef.update({
+        montosAplicados: nuevosMontosAplicados,
+        facturasIds: nuevasFacturasIds,
+        saldo: nuevoSaldo
+      })
+      .then(() => {
+        actualizarEstadoFactura(facturaSeleccionadaId);
+        Swal.fire('Éxito', `Se aplicaron ${quetzalFormatter.format(montoAplicacion)} a la factura ${facturaAplicar.numeroFactura}.`, 'success');
+        document.getElementById('montoAplicacion').value = '';
+      })
+      .catch(error => {
+        console.error('Error al aplicar boleta:', error);
+        Swal.fire('Error', 'Hubo un problema al aplicar la boleta.', 'error');
+      });
     }
-  }
-
-  nuevosMontosAplicados[facturaSeleccionadaId] += montoAplicacion;
-  const nuevoSaldo = boletaSeleccionada.saldo - montoAplicacion;
-
-  pagoRef.update({
-    montosAplicados: nuevosMontosAplicados,
-    facturasIds: nuevasFacturasIds,
-    saldo: nuevoSaldo
-  })
-  .then(() => {
-    actualizarEstadoFactura(facturaSeleccionadaId);
-    Swal.fire('Éxito', `Se aplicaron ${quetzalFormatter.format(montoAplicacion)} a la factura ${facturaAplicar.numeroFactura}.`, 'success');
-    document.getElementById('montoAplicacion').value = '';
-    abrirModalAplicarBoleta(boletaSeleccionada.id);
-  })
-  .catch(error => {
-    console.error('Error al aplicar boleta:', error);
-    Swal.fire('Error', 'Hubo un problema al aplicar la boleta.', 'error');
   });
 });
