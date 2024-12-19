@@ -473,14 +473,6 @@ function cerrarModalPago() {
   }
 }
 
-function mostrarPagos() {
-  const mostrarPagosModal = document.getElementById('mostrarPagosModal');
-  if (mostrarPagosModal) {
-    mostrarPagosModal.style.display = 'block';
-    cargarListaPagos(); 
-  }
-}
-
 function cerrarModalMostrarPagos() {
   const mostrarPagosModal = document.getElementById('mostrarPagosModal');
   if (mostrarPagosModal) {
@@ -492,13 +484,6 @@ function cerrarModalEditarPago() {
   const editarPagoModal = document.getElementById('editarPagoModal');
   if (editarPagoModal) {
     editarPagoModal.style.display = 'none';
-  }
-}
-
-function cerrarModalAplicarBoleta() {
-  const aplicarBoletaModal = document.getElementById('aplicarBoletaModal');
-  if (aplicarBoletaModal) {
-    aplicarBoletaModal.style.display = 'none';
   }
 }
 
@@ -884,6 +869,7 @@ function filtrarFacturas() {
   const filterEstado = document.getElementById('filterEstado').value;
   const filterFechaInicio = document.getElementById('filterFechaInicio').value;
   const filterFechaFin = document.getElementById('filterFechaFin').value;
+  const filterMes = document.getElementById('filterMes').value; // Nuevo filtro por mes
   const yearSelect = document.getElementById('yearSelect') ? document.getElementById('yearSelect').value : '';
 
   let filteredFacturas = facturas.filter(factura => {
@@ -912,6 +898,11 @@ function filtrarFacturas() {
       matchesFecha = fechaFactura <= fechaFin;
     }
 
+    if (filterMes) {
+      const mesFactura = new Date(factura.fechaFactura).getMonth() + 1; // getMonth() retorna 0-11
+      matchesFecha = matchesFecha && (mesFactura === parseInt(filterMes));
+    }
+
     if (yearSelect) {
       const añoFactura = new Date(factura.fechaFactura).getFullYear();
       matchesFecha = matchesFecha && (añoFactura === parseInt(yearSelect));
@@ -931,6 +922,7 @@ function resetearFiltros() {
   const filterEstado = document.getElementById('filterEstado');
   const filterFechaInicio = document.getElementById('filterFechaInicio');
   const filterFechaFin = document.getElementById('filterFechaFin');
+  const filterMes = document.getElementById('filterMes'); // Resetear filtro por mes
   const yearSelect = document.getElementById('yearSelect');
 
   if (searchInput) searchInput.value = '';
@@ -940,6 +932,7 @@ function resetearFiltros() {
   if (filterEstado) filterEstado.value = '';
   if (filterFechaInicio) filterFechaInicio.value = '';
   if (filterFechaFin) filterFechaFin.value = '';
+  if (filterMes) filterMes.value = ''; // Resetear filtro por mes
   if (yearSelect) yearSelect.value = '';
 
   mostrarFacturas(facturas);
@@ -984,6 +977,7 @@ function agregarEventosGlobales() {
   const filterEstado = document.getElementById('filterEstado');
   const filterFechaInicio = document.getElementById('filterFechaInicio');
   const filterFechaFin = document.getElementById('filterFechaFin');
+  const filterMes = document.getElementById('filterMes'); // Evento para filtro por mes
   const yearSelect = document.getElementById('yearSelect');
 
   if (searchInput) searchInput.addEventListener('input', filtrarFacturas);
@@ -993,6 +987,7 @@ function agregarEventosGlobales() {
   if (filterEstado) filterEstado.addEventListener('change', filtrarFacturas);
   if (filterFechaInicio) filterFechaInicio.addEventListener('change', filtrarFacturas);
   if (filterFechaFin) filterFechaFin.addEventListener('change', filtrarFacturas);
+  if (filterMes) filterMes.addEventListener('change', filtrarFacturas); // Añadir listener para filtro por mes
   if (yearSelect) yearSelect.addEventListener('change', filtrarFacturas);
 
   // Cuando cambie el proveedor, recalcular la fecha de vencimiento si ya hay fecha de factura seleccionada
@@ -1276,4 +1271,58 @@ document.getElementById('aplicarBoletaForm').addEventListener('submit', function
       });
     }
   });
-});
+});  
+
+// =========================
+// Manejo de Selecciones
+// =========================
+
+// (Esta sección ya está incluida anteriormente)
+
+// =========================
+// Filtros
+// =========================
+
+// (Esta sección ya está incluida anteriormente, con las modificaciones para el filtro por mes)
+
+// =========================
+// Seleccionar/Deseleccionar Todas las Facturas
+// =========================
+
+// (Esta sección ya está incluida anteriormente)
+
+// =========================
+// Eventos Globales
+// =========================
+
+// (Esta sección ya está incluida anteriormente)
+
+// =========================
+// Cargar Datos Iniciales
+// =========================
+
+// (Esta sección ya está incluida anteriormente)
+
+// =========================
+// Cargar y Escuchar Cambios en Firestore
+// =========================
+
+// (Esta sección ya está incluida anteriormente)
+
+// =========================
+// Aplicar Boleta (Confirmación de Monto a Aplicar)
+// =========================
+
+// (Esta sección ya está incluida anteriormente)
+
+// =========================
+// Mostrar Pagos de Factura
+// =========================
+
+// Ya no se utiliza la función mostrarPagos() general, solo se utiliza mostrarPagosDeFactura(facturaId)
+
+// =========================
+// Resto del Código
+// =========================
+
+// Todas las funciones y eventos ya están definidos anteriormente. No se requiere agregar código adicional aquí.

@@ -1,4 +1,4 @@
-/* styles.css */
+/* styles.css */ 
 
 body {
     font-family: Arial, sans-serif;
@@ -9,7 +9,7 @@ body {
 
 .header {
     background-color: #4CAF50;
-    padding: 10px;
+    padding: 10px 0; /* Reducido padding lateral */
     display: flex;
     justify-content: center;
 }
@@ -19,7 +19,7 @@ body {
     border: none;
     color: #4CAF50;
     padding: 10px 20px;
-    margin: 0 10px;
+    margin: 0 5px; /* Reducido margen entre botones */
     cursor: pointer;
     font-size: 16px;
     border-radius: 4px;
@@ -30,26 +30,27 @@ body {
 }
 
 .container {
-    padding: 20px;
+    padding: 0; /* Eliminado padding */
+    width: 100%; /* Asegurado que ocupe todo el ancho */
 }
 
 .main-content {
     display: flex;
-    gap: 20px;
+    gap: 0; /* Eliminado espacio entre secciones */
+    width: 100%;
 }
 
-/* Estilos para la sección de Boletas */
 #boletasConSaldo {
-    flex: 1;
+    width: 70%; /* Ajustado para ocupar más espacio */
     background-color: #ffffff;
     padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 0; /* Eliminado border-radius para mayor ancho */
+    box-shadow: none; /* Eliminado sombra */
     overflow-x: auto;
 }
 
 #boletasConSaldo h3 {
-    margin-top: 0;
+    margin: 10px 0; /* Ajustado margen superior e inferior */
 }
 
 #boletasTable {
@@ -69,11 +70,11 @@ body {
 
 /* Estilos para la sección de Filtros */
 .filtros {
-    flex: 0.5;
+    width: 30%; /* Ajustado para ocupar menos espacio */
     background-color: #ffffff;
     padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 0; /* Eliminado border-radius */
+    box-shadow: none; /* Eliminado sombra */
 }
 
 .filter-group div {
@@ -96,7 +97,7 @@ body {
 
 .filtros button {
     padding: 10px 15px;
-    margin-right: 10px;
+    margin-right: 5px; /* Reducido margen entre botones */
     border: none;
     background-color: #4CAF50;
     color: #ffffff;
@@ -111,9 +112,10 @@ body {
 
 /* Estilos para los botones de acción */
 .action-buttons {
-    margin: 20px 0;
+    margin: 10px 0; /* Reducido margen superior e inferior */
     display: flex;
     gap: 10px;
+    justify-content: center; /* Centrado de botones */
 }
 
 .action-buttons button {
@@ -124,6 +126,8 @@ body {
     cursor: pointer;
     border-radius: 4px;
     font-size: 14px;
+    flex: 1; /* Hacer que los botones ocupen el mismo espacio */
+    max-width: 200px; /* Opcional: limitar el ancho máximo */
 }
 
 .action-buttons button:hover {
@@ -135,9 +139,9 @@ body {
     width: 100%;
     border-collapse: collapse;
     background-color: #ffffff;
-    border-radius: 8px;
+    border-radius: 0; /* Eliminado border-radius */
     overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: none; /* Eliminado sombra */
 }
 
 #facturasTable th, #facturasTable td {
@@ -173,7 +177,7 @@ body {
     display: none; /* Hidden by default */
     position: fixed; /* Stay in place */
     z-index: 1; /* Sit on top */
-    padding-top: 60px; /* Location of the box */
+    padding-top: 0; /* Eliminado padding superior */
     left: 0;
     top: 0;
     width: 100%; /* Full width */
@@ -184,10 +188,10 @@ body {
 
 .modal-content {
     background-color: #fefefe;
-    margin: auto;
+    margin: 5% auto; /* Reducido margen superior e inferior */
     padding: 20px;
     border: 1px solid #888;
-    width: 80%;
+    width: 90%; /* Aumentado ancho para ocupar más espacio */
     border-radius: 8px;
     position: relative;
 }
@@ -247,7 +251,7 @@ body {
     background-color: #45a049;
 }
 
-/* Estilos para listas dentro de las tablas */
+/* Estilos para listas dentro de tablas */
 #boletasTable ul,
 #boletasTable li {
     list-style-type: none;
